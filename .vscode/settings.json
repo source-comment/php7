@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "zend_globals.h": "c",
-        "zend_variables.h": "c",
-        "zend.h": "c",
-        "type_traits": "cpp",
-        "typeinfo": "cpp"
-    }
-}
