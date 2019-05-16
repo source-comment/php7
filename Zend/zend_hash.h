@@ -25,42 +25,48 @@
 
 #include "zend.h"
 
-#define HASH_KEY_IS_STRING 1
-#define HASH_KEY_IS_LONG 2
-#define HASH_KEY_NON_EXISTENT 3
+#define HASH_KEY_IS_STRING 1	//哈希表key是字符串
+#define HASH_KEY_IS_LONG 2	//字符串key是数值
+#define HASH_KEY_NON_EXISTENT 3	//key不存在
 
-#define HASH_UPDATE 			(1<<0)
-#define HASH_ADD				(1<<1)
-#define HASH_UPDATE_INDIRECT	(1<<2)
-#define HASH_ADD_NEW			(1<<3)
-#define HASH_ADD_NEXT			(1<<4)
+//操作掩码
+#define HASH_UPDATE 			(1<<0)	//更新
+#define HASH_ADD				(1<<1)	//添加
+#define HASH_UPDATE_INDIRECT	(1<<2)	//更新间接元素
+#define HASH_ADD_NEW			(1<<3)	//新增
+#define HASH_ADD_NEXT			(1<<4)	//新增下一个
 
-#define HASH_FLAG_PERSISTENT       (1<<0)
-#define HASH_FLAG_APPLY_PROTECTION (1<<1)
-#define HASH_FLAG_PACKED           (1<<2)
-#define HASH_FLAG_INITIALIZED      (1<<3)
+#define HASH_FLAG_PERSISTENT       (1<<0)	//永久存储，直接向系统申请内存
+#define HASH_FLAG_APPLY_PROTECTION (1<<1)	//递归保护
+#define HASH_FLAG_PACKED           (1<<2)	//数值索引数组
+#define HASH_FLAG_INITIALIZED      (1<<3)	//已初始化
 #define HASH_FLAG_STATIC_KEYS      (1<<4) /* long and interned strings */
-#define HASH_FLAG_HAS_EMPTY_IND    (1<<5)
-#define HASH_FLAG_ALLOW_COW_VIOLATION (1<<6)
+#define HASH_FLAG_HAS_EMPTY_IND    (1<<5)	//是否有空内部字符串
+#define HASH_FLAG_ALLOW_COW_VIOLATION (1<<6)	//debug用于哈希表的断言检测
 
+//是数值索引哈希表
 #define HT_IS_PACKED(ht) \
 	(((ht)->u.flags & HASH_FLAG_PACKED) != 0)
 
+//所有元素有效
 #define HT_IS_WITHOUT_HOLES(ht) \
 	((ht)->nNumUsed == (ht)->nNumOfElements)
 
+//静态key并且数值索引
 #define HT_HAS_STATIC_KEYS_ONLY(ht) \
 	(((ht)->u.flags & (HASH_FLAG_PACKED|HASH_FLAG_STATIC_KEYS)) != 0)
 
+//断言检测
 #if ZEND_DEBUG
 # define HT_ALLOW_COW_VIOLATION(ht) (ht)->u.flags |= HASH_FLAG_ALLOW_COW_VIOLATION
 #else
 # define HT_ALLOW_COW_VIOLATION(ht)
 #endif
 
+//哈希表的key类型
 typedef struct _zend_hash_key {
-	zend_ulong h;
-	zend_string *key;
+	zend_ulong h;	//数值索引或者哈希值
+	zend_string *key;	//字符串索引，此值为NULL时，h=数值
 } zend_hash_key;
 
 typedef zend_bool (*merge_checker_func_t)(HashTable *target_ht, zval *source_data, zend_hash_key *hash_key, void *pParam);
@@ -87,12 +93,17 @@ ZEND_API zval* ZEND_FASTCALL _zend_hash_update_ind(HashTable *ht, zend_string *k
 ZEND_API zval* ZEND_FASTCALL _zend_hash_add(HashTable *ht, zend_string *key,zval *pData ZEND_FILE_LINE_DC);
 ZEND_API zval* ZEND_FASTCALL _zend_hash_add_new(HashTable *ht, zend_string *key,zval *pData ZEND_FILE_LINE_DC);
 
+//更新key val
 #define zend_hash_update(ht, key, pData) \
 		_zend_hash_update(ht, key, pData ZEND_FILE_LINE_CC)
+//更新key，间接val
 #define zend_hash_update_ind(ht, key, pData) \
 		_zend_hash_update_ind(ht, key, pData ZEND_FILE_LINE_CC)
+
+//新增key
 #define zend_hash_add(ht, key, pData) \
 		_zend_hash_add(ht, key, pData ZEND_FILE_LINE_CC)
+//新增key，val
 #define zend_hash_add_new(ht, key, pData) \
 		_zend_hash_add_new(ht, key, pData ZEND_FILE_LINE_CC)
 
@@ -266,6 +277,7 @@ ZEND_API void         ZEND_FASTCALL zend_hash_iterator_del(uint32_t idx);
 ZEND_API HashPosition ZEND_FASTCALL zend_hash_iterators_lower_pos(HashTable *ht, HashPosition start);
 ZEND_API void         ZEND_FASTCALL _zend_hash_iterators_update(HashTable *ht, HashPosition from, HashPosition to);
 
+//更新迭代器的位置，from -> to
 static zend_always_inline void zend_hash_iterators_update(HashTable *ht, HashPosition from, HashPosition to)
 {
 	if (UNEXPECTED(ht->u.v.nIteratorsCount)) {
@@ -275,10 +287,11 @@ static zend_always_inline void zend_hash_iterators_update(HashTable *ht, HashPos
 
 
 END_EXTERN_C()
-
+//初始化字符表
 #define ZEND_INIT_SYMTABLE(ht)								\
 	ZEND_INIT_SYMTABLE_EX(ht, 8, 0)
 
+//初始化哈希表
 #define ZEND_INIT_SYMTABLE_EX(ht, n, persistent)			\
 	zend_hash_init(ht, n, NULL, ZVAL_PTR_DTOR, persistent)
 
@@ -314,6 +327,12 @@ static zend_always_inline int _zend_handle_numeric_str(const char *key, size_t l
 	ZEND_HANDLE_NUMERIC_STR(ZSTR_VAL(key), ZSTR_LEN(key), idx)
 
 
+/**
+ * @description: 查找key
+ * @param HashTable* ht 待查找哈希表
+ * @param zend_string* key
+ * @return: zal
+ */
 static zend_always_inline zval *zend_hash_find_ind(const HashTable *ht, zend_string *key)
 {
 	zval *zv;
@@ -323,7 +342,12 @@ static zend_always_inline zval *zend_hash_find_ind(const HashTable *ht, zend_str
 		((Z_TYPE_P(Z_INDIRECT_P(zv)) != IS_UNDEF) ? Z_INDIRECT_P(zv) : NULL) : zv;
 }
 
-
+/**
+ * @description: 判断key是否存在
+ * @param HashTable* ht 待查找哈希表
+ * @param end_string* key
+ * @return: int
+ */
 static zend_always_inline int zend_hash_exists_ind(const HashTable *ht, zend_string *key)
 {
 	zval *zv;
@@ -333,7 +357,13 @@ static zend_always_inline int zend_hash_exists_ind(const HashTable *ht, zend_str
 			Z_TYPE_P(Z_INDIRECT_P(zv)) != IS_UNDEF);
 }
 
-
+/**
+ * @description: 查找key
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 查找字符串
+ * @param size_t len 字符串长度
+ * @return: zal
+ */
 static zend_always_inline zval *zend_hash_str_find_ind(const HashTable *ht, const char *str, size_t len)
 {
 	zval *zv;
@@ -343,7 +373,13 @@ static zend_always_inline zval *zend_hash_str_find_ind(const HashTable *ht, cons
 		((Z_TYPE_P(Z_INDIRECT_P(zv)) != IS_UNDEF) ? Z_INDIRECT_P(zv) : NULL) : zv;
 }
 
-
+/**
+ * @description: 判断字符串是否存在
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 查找字符串
+ * @param size_t len 字符串长度
+ * @return: int
+ */
 static zend_always_inline int zend_hash_str_exists_ind(const HashTable *ht, const char *str, size_t len)
 {
 	zval *zv;
@@ -353,6 +389,13 @@ static zend_always_inline int zend_hash_str_exists_ind(const HashTable *ht, cons
 			Z_TYPE_P(Z_INDIRECT_P(zv)) != IS_UNDEF);
 }
 
+/**
+ * @description: 添加到哈希表
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 插入key
+ * @param zval* pData 插入元素
+ * @return: zval
+ */
 static zend_always_inline zval *zend_symtable_add_new(HashTable *ht, zend_string *key, zval *pData)
 {
 	zend_ulong idx;
@@ -364,6 +407,13 @@ static zend_always_inline zval *zend_symtable_add_new(HashTable *ht, zend_string
 	}
 }
 
+/**
+ * @description: 更新哈希表元素
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 插入key
+ * @param zval* pData 插入元素
+ * @return: zval
+ */
 static zend_always_inline zval *zend_symtable_update(HashTable *ht, zend_string *key, zval *pData)
 {
 	zend_ulong idx;
@@ -375,7 +425,13 @@ static zend_always_inline zval *zend_symtable_update(HashTable *ht, zend_string 
 	}
 }
 
-
+/**
+ * @description: 更新哈希表的间接元素
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 插入key
+ * @param zval* pData 插入元素
+ * @return: zval
+ */
 static zend_always_inline zval *zend_symtable_update_ind(HashTable *ht, zend_string *key, zval *pData)
 {
 	zend_ulong idx;
@@ -387,7 +443,12 @@ static zend_always_inline zval *zend_symtable_update_ind(HashTable *ht, zend_str
 	}
 }
 
-
+/**
+ * @description: 删除哈希表key
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* 待删除key
+ * @return: zval
+ */
 static zend_always_inline int zend_symtable_del(HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -399,7 +460,12 @@ static zend_always_inline int zend_symtable_del(HashTable *ht, zend_string *key)
 	}
 }
 
-
+/**
+ * @description: 删除哈希表间接元素key
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* 待删除key
+ * @return: zval
+ */
 static zend_always_inline int zend_symtable_del_ind(HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -411,7 +477,12 @@ static zend_always_inline int zend_symtable_del_ind(HashTable *ht, zend_string *
 	}
 }
 
-
+/**
+ * @description: 查找key
+ * @param HashTable* ht 待查找哈希表
+ * @param zend_string* key 查找字符串
+ * @return: zal
+ */
 static zend_always_inline zval *zend_symtable_find(const HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -423,7 +494,12 @@ static zend_always_inline zval *zend_symtable_find(const HashTable *ht, zend_str
 	}
 }
 
-
+/**
+ * @description: 查找数字key
+ * @param HashTable* ht 待查找哈希表
+ * @param zend_string* key 查找key
+ * @return: zal
+ */
 static zend_always_inline zval *zend_symtable_find_ind(const HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -435,7 +511,12 @@ static zend_always_inline zval *zend_symtable_find_ind(const HashTable *ht, zend
 	}
 }
 
-
+/**
+ * @description: 判断数字key是否存在
+ * @param HashTable* ht 待查找哈希表
+ * @param zend_string* key 查找key
+ * @return: zal
+ */
 static zend_always_inline int zend_symtable_exists(HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -447,7 +528,12 @@ static zend_always_inline int zend_symtable_exists(HashTable *ht, zend_string *k
 	}
 }
 
-
+/**
+ * @description: 判断数字间接元素key是否存在
+ * @param HashTable* ht 待查找哈希表
+ * @param zend_string* key 查找key
+ * @return: zal
+ */
 static zend_always_inline int zend_symtable_exists_ind(HashTable *ht, zend_string *key)
 {
 	zend_ulong idx;
@@ -459,7 +545,14 @@ static zend_always_inline int zend_symtable_exists_ind(HashTable *ht, zend_strin
 	}
 }
 
-
+/**
+ * @description: 更新哈希表
+ * @param HashTable* ht 待操作哈希表
+ * @param char* str 查找字符串
+ * @param size_t len 字符串长度
+ * @param zval* pData
+ * @return: zal
+ */
 static zend_always_inline zval *zend_symtable_str_update(HashTable *ht, const char *str, size_t len, zval *pData)
 {
 	zend_ulong idx;
@@ -471,7 +564,14 @@ static zend_always_inline zval *zend_symtable_str_update(HashTable *ht, const ch
 	}
 }
 
-
+/**
+ * @description: 更新哈希表间接元素
+ * @param HashTable* ht 待操作哈希表
+ * @param char* str 查找字符串
+ * @param size_t len 字符串长度
+ * @param zval* pData
+ * @return: zal
+ */
 static zend_always_inline zval *zend_symtable_str_update_ind(HashTable *ht, const char *str, size_t len, zval *pData)
 {
 	zend_ulong idx;
@@ -483,7 +583,13 @@ static zend_always_inline zval *zend_symtable_str_update_ind(HashTable *ht, cons
 	}
 }
 
-
+/**
+ * @description: 从哈希表删除元素
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 删除key
+ * @param size_t len key长度
+ * @return: zal
+ */
 static zend_always_inline int zend_symtable_str_del(HashTable *ht, const char *str, size_t len)
 {
 	zend_ulong idx;
@@ -495,7 +601,13 @@ static zend_always_inline int zend_symtable_str_del(HashTable *ht, const char *s
 	}
 }
 
-
+/**
+ * @description: 从哈希表删除间接元素
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 删除key
+ * @param size_t len key长度
+ * @return: zal
+ */
 static zend_always_inline int zend_symtable_str_del_ind(HashTable *ht, const char *str, size_t len)
 {
 	zend_ulong idx;
@@ -507,7 +619,13 @@ static zend_always_inline int zend_symtable_str_del_ind(HashTable *ht, const cha
 	}
 }
 
-
+/**
+ * @description: 从哈希表中查找key
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 字符串key
+ * @param size_t len key长度
+ * @return: zal
+ */
 static zend_always_inline zval *zend_symtable_str_find(HashTable *ht, const char *str, size_t len)
 {
 	zend_ulong idx;
@@ -519,7 +637,13 @@ static zend_always_inline zval *zend_symtable_str_find(HashTable *ht, const char
 	}
 }
 
-
+/**
+ * @description: 从哈希表中查找key
+ * @param HashTable* ht 待查找哈希表
+ * @param char* str 字符串key
+ * @param size_t len key长度
+ * @return: zal
+ */
 static zend_always_inline int zend_symtable_str_exists(HashTable *ht, const char *str, size_t len)
 {
 	zend_ulong idx;
@@ -531,6 +655,13 @@ static zend_always_inline int zend_symtable_str_exists(HashTable *ht, const char
 	}
 }
 
+/**
+ * @description: 添加指针元素到哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 插入key
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_add_ptr(HashTable *ht, zend_string *key, void *pData)
 {
 	zval tmp, *zv;
@@ -545,6 +676,13 @@ static zend_always_inline void *zend_hash_add_ptr(HashTable *ht, zend_string *ke
 	}
 }
 
+/**
+ * @description: 添加指针元素到哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 插入key
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_add_new_ptr(HashTable *ht, zend_string *key, void *pData)
 {
 	zval tmp, *zv;
@@ -559,6 +697,14 @@ static zend_always_inline void *zend_hash_add_new_ptr(HashTable *ht, zend_string
 	}
 }
 
+/**
+ * @description: 添加指针元素到哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param char* str 插入key
+ * @param size_t len key长度
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_str_add_ptr(HashTable *ht, const char *str, size_t len, void *pData)
 {
 	zval tmp, *zv;
@@ -573,6 +719,14 @@ static zend_always_inline void *zend_hash_str_add_ptr(HashTable *ht, const char 
 	}
 }
 
+/**
+ * @description: 添加指针元素到哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param char* str 插入key
+ * @param size_t len key长度
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_str_add_new_ptr(HashTable *ht, const char *str, size_t len, void *pData)
 {
 	zval tmp, *zv;
@@ -587,6 +741,13 @@ static zend_always_inline void *zend_hash_str_add_new_ptr(HashTable *ht, const c
 	}
 }
 
+/**
+ * @description: 更新哈希表指针元素
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 元素key
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_update_ptr(HashTable *ht, zend_string *key, void *pData)
 {
 	zval tmp, *zv;
@@ -601,6 +762,13 @@ static zend_always_inline void *zend_hash_update_ptr(HashTable *ht, zend_string 
 	}
 }
 
+/**
+ * @description: 更新哈希表指针元素
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 元素key
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_str_update_ptr(HashTable *ht, const char *str, size_t len, void *pData)
 {
 	zval tmp, *zv;
@@ -615,6 +783,13 @@ static zend_always_inline void *zend_hash_str_update_ptr(HashTable *ht, const ch
 	}
 }
 
+/**
+ * @description: 添加元素到哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 元素key
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_add_mem(HashTable *ht, zend_string *key, void *pData, size_t size)
 {
 	zval tmp, *zv;
@@ -628,6 +803,15 @@ static zend_always_inline void *zend_hash_add_mem(HashTable *ht, zend_string *ke
 	return NULL;
 }
 
+/**
+ * @description: 添加key对应一个空元素到哈希表并复制一个新元素返回
+ * @param HashTable* ht待操作哈希表
+ * @param char* str 字符串key
+ * @param size_t len 字符串长度
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: zval*|NULL
+ */
 static zend_always_inline void *zend_hash_str_add_mem(HashTable *ht, const char *str, size_t len, void *pData, size_t size)
 {
 	zval tmp, *zv;
@@ -641,6 +825,14 @@ static zend_always_inline void *zend_hash_str_add_mem(HashTable *ht, const char 
 	return NULL;
 }
 
+/**
+ * @description: 更新哈希表为pData的副本
+ * @param HashTable* ht待操作哈希表
+ * param zend_string* key
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: 
+ */
 static zend_always_inline void *zend_hash_update_mem(HashTable *ht, zend_string *key, void *pData, size_t size)
 {
 	void *p;
@@ -650,6 +842,15 @@ static zend_always_inline void *zend_hash_update_mem(HashTable *ht, zend_string 
 	return zend_hash_update_ptr(ht, key, p);
 }
 
+/**
+ * @description: 更新哈希表为pData的副本
+ * @param HashTable* ht待操作哈希表
+ * @param char* str 字符串key
+ * @param size_t len 字符串长度
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: 
+ */
 static zend_always_inline void *zend_hash_str_update_mem(HashTable *ht, const char *str, size_t len, void *pData, size_t size)
 {
 	void *p;
@@ -659,6 +860,13 @@ static zend_always_inline void *zend_hash_str_update_mem(HashTable *ht, const ch
 	return zend_hash_str_update_ptr(ht, str, len, p);
 }
 
+/**
+ * @description: 添加指针元素到数值索引哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 数值
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_index_add_ptr(HashTable *ht, zend_ulong h, void *pData)
 {
 	zval tmp, *zv;
@@ -668,6 +876,13 @@ static zend_always_inline void *zend_hash_index_add_ptr(HashTable *ht, zend_ulon
 	return zv ? Z_PTR_P(zv) : NULL;
 }
 
+/**
+ * @description: 添加指针元素到数值索引哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 数值
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_index_add_new_ptr(HashTable *ht, zend_ulong h, void *pData)
 {
 	zval tmp, *zv;
@@ -677,6 +892,13 @@ static zend_always_inline void *zend_hash_index_add_new_ptr(HashTable *ht, zend_
 	return zv ? Z_PTR_P(zv) : NULL;
 }
 
+/**
+ * @description: 更新指针元素到数值索引哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 数值
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_index_update_ptr(HashTable *ht, zend_ulong h, void *pData)
 {
 	zval tmp, *zv;
@@ -691,6 +913,14 @@ static zend_always_inline void *zend_hash_index_update_ptr(HashTable *ht, zend_u
 	}
 }
 
+/**
+ * @description: 添加空指针到数值索引哈希表，并返pData副本
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 数值
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_index_add_mem(HashTable *ht, zend_ulong h, void *pData, size_t size)
 {
 	zval tmp, *zv;
@@ -704,6 +934,12 @@ static zend_always_inline void *zend_hash_index_add_mem(HashTable *ht, zend_ulon
 	return NULL;
 }
 
+/**
+ * @description: 插入指针元素到数值索引哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param void* pData 元素指针
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_next_index_insert_ptr(HashTable *ht, void *pData)
 {
 	zval tmp, *zv;
@@ -718,6 +954,14 @@ static zend_always_inline void *zend_hash_next_index_insert_ptr(HashTable *ht, v
 	}
 }
 
+/**
+ * @description: 插入指针元素的副本到数值索引哈希表
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 索引
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_index_update_mem(HashTable *ht, zend_ulong h, void *pData, size_t size)
 {
 	void *p;
@@ -727,6 +971,14 @@ static zend_always_inline void *zend_hash_index_update_mem(HashTable *ht, zend_u
 	return zend_hash_index_update_ptr(ht, h, p);
 }
 
+/**
+ * @description: 插入空数据到哈希表，并返回指定数据副本
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 索引
+ * @param void* pData 元素指针
+ * @param size_t size 元素大小
+ * @return: void
+ */
 static zend_always_inline void *zend_hash_next_index_insert_mem(HashTable *ht, void *pData, size_t size)
 {
 	zval tmp, *zv;
@@ -740,6 +992,12 @@ static zend_always_inline void *zend_hash_next_index_insert_mem(HashTable *ht, v
 	return NULL;
 }
 
+/**
+ * @description: 查找指针元素
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* key 查找key
+ * @return: void|NULL
+ */
 static zend_always_inline void *zend_hash_find_ptr(const HashTable *ht, zend_string *key)
 {
 	zval *zv;
@@ -753,6 +1011,13 @@ static zend_always_inline void *zend_hash_find_ptr(const HashTable *ht, zend_str
 	}
 }
 
+/**
+ * @description: 查找指针元素
+ * @param HashTable* ht待操作哈希表
+ * @param char* str 查找key
+ * @param size_t len key长度
+ * @return: void|NULL
+ */
 static zend_always_inline void *zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len)
 {
 	zval *zv;
@@ -766,6 +1031,12 @@ static zend_always_inline void *zend_hash_str_find_ptr(const HashTable *ht, cons
 	}
 }
 
+/**
+ * @description: 通过索引查找指针元素
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 索引
+ * @return: void|NULL
+ */
 static zend_always_inline void *zend_hash_index_find_ptr(const HashTable *ht, zend_ulong h)
 {
 	zval *zv;
@@ -779,6 +1050,12 @@ static zend_always_inline void *zend_hash_index_find_ptr(const HashTable *ht, ze
 	}
 }
 
+/**
+ * @description: 通过索引查找指针元素并返回指针目标
+ * @param HashTable* ht待操作哈希表
+ * @param zend_ulong h 索引
+ * @return: zval
+ */
 static zend_always_inline zval *zend_hash_index_find_deref(HashTable *ht, zend_ulong h)
 {
 	zval *zv = zend_hash_index_find(ht, h);
@@ -788,6 +1065,12 @@ static zend_always_inline zval *zend_hash_index_find_deref(HashTable *ht, zend_u
 	return zv;
 }
 
+/**
+ * @description: 通过字符串查找指针元素并返回指针目标
+ * @param HashTable* ht待操作哈希表
+ * @param zend_string* str 字符串
+ * @return: zval
+ */
 static zend_always_inline zval *zend_hash_find_deref(HashTable *ht, zend_string *str)
 {
 	zval *zv = zend_hash_find(ht, str);
@@ -797,6 +1080,13 @@ static zend_always_inline zval *zend_hash_find_deref(HashTable *ht, zend_string 
 	return zv;
 }
 
+/**
+ * @description: 通过字符串查找指针元素并返回指针目标
+ * @param HashTable* ht待操作哈希表
+ * @param char* str key
+ * @param size_t len 长度
+ * @return: zval
+ */
 static zend_always_inline zval *zend_hash_str_find_deref(HashTable *ht, const char *str, size_t len)
 {
 	zval *zv = zend_hash_str_find(ht, str, len);
@@ -806,6 +1096,13 @@ static zend_always_inline zval *zend_hash_str_find_deref(HashTable *ht, const ch
 	return zv;
 }
 
+/**
+ * @description: 通过字符串查找指针元素并返回指针目标（自动选择查找方式）
+ * @param HashTable* ht待操作哈希表
+ * @param char* str key
+ * @param size_t len 长度
+ * @return: zval
+ */
 static zend_always_inline void *zend_symtable_str_find_ptr(HashTable *ht, const char *str, size_t len)
 {
 	zend_ulong idx;
@@ -817,6 +1114,12 @@ static zend_always_inline void *zend_symtable_str_find_ptr(HashTable *ht, const 
 	}
 }
 
+/**
+ * @description: 根据索引获取哈希表的指针元素数据
+ * @param HashTable* ht 代操作哈希表
+ * @param HashPosition* pos
+ * @return: zval*
+ */
 static zend_always_inline void *zend_hash_get_current_data_ptr_ex(HashTable *ht, HashPosition *pos)
 {
 	zval *zv;
@@ -830,9 +1133,11 @@ static zend_always_inline void *zend_hash_get_current_data_ptr_ex(HashTable *ht,
 	}
 }
 
+//查找指针元素数据
 #define zend_hash_get_current_data_ptr(ht) \
 	zend_hash_get_current_data_ptr_ex(ht, &(ht)->nInternalPointer)
 
+//遍历哈希表开始
 #define ZEND_HASH_FOREACH(_ht, indirect) do { \
 		HashTable *__ht = (_ht); \
 		Bucket *_p = __ht->arData; \
@@ -844,6 +1149,7 @@ static zend_always_inline void *zend_hash_get_current_data_ptr_ex(HashTable *ht,
 			} \
 			if (UNEXPECTED(Z_TYPE_P(_z) == IS_UNDEF)) continue;
 
+//倒序遍历哈希表开始
 #define ZEND_HASH_REVERSE_FOREACH(_ht, indirect) do { \
 		HashTable *__ht = (_ht); \
 		uint32_t _idx; \
@@ -855,6 +1161,7 @@ static zend_always_inline void *zend_hash_get_current_data_ptr_ex(HashTable *ht,
 			} \
 			if (UNEXPECTED(Z_TYPE_P(_z) == IS_UNDEF)) continue;
 
+//遍历哈希表结束
 #define ZEND_HASH_FOREACH_END() \
 		} \
 	} while (0)
@@ -1021,17 +1328,24 @@ static zend_always_inline void *zend_hash_get_current_data_ptr_ex(HashTable *ht,
 		__fill_ht->nInternalPointer = __fill_idx ? 0 : HT_INVALID_IDX; \
 	} while (0)
 
+/**
+ * @description: 添加元素到哈希表后面
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 字符串key
+ * @param zval* zv 元素
+ * @return: 
+ */
 static zend_always_inline zval *_zend_hash_append(HashTable *ht, zend_string *key, zval *zv)
 {
 	uint32_t idx = ht->nNumUsed++;
 	uint32_t nIndex;
 	Bucket *p = ht->arData + idx;
 
-	ZVAL_COPY_VALUE(&p->val, zv);
-	if (!ZSTR_IS_INTERNED(key)) {
-		ht->u.flags &= ~HASH_FLAG_STATIC_KEYS;
-		zend_string_addref(key);
-		zend_string_hash_val(key);
+	ZVAL_COPY_VALUE(&p->val, zv);	//复制元素到指定位置
+	if (!ZSTR_IS_INTERNED(key)) { //非内部字符串
+		ht->u.flags &= ~HASH_FLAG_STATIC_KEYS;	//取消静态key属性
+		zend_string_addref(key);	//计数增加
+		zend_string_hash_val(key);	//计算key哈希值
 	}
 	p->key = key;
 	p->h = ZSTR_H(key);
@@ -1043,6 +1357,13 @@ static zend_always_inline zval *_zend_hash_append(HashTable *ht, zend_string *ke
 	return &p->val;
 }
 
+/**
+ * @description: 添加指针元素到哈希表后面
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 字符串key
+ * @param void* ptr 指针元素
+ * @return: 
+ */
 static zend_always_inline zval *_zend_hash_append_ptr(HashTable *ht, zend_string *key, void *ptr)
 {
 	uint32_t idx = ht->nNumUsed++;
@@ -1065,6 +1386,13 @@ static zend_always_inline zval *_zend_hash_append_ptr(HashTable *ht, zend_string
 	return &p->val;
 }
 
+/**
+ * @description: 添加间接元素到哈希表后面
+ * @param HashTable* ht 待操作哈希表
+ * @param zend_string* key 字符串key
+ * @param zval* ptr 指针元素
+ * @return: 
+ */
 static zend_always_inline void _zend_hash_append_ind(HashTable *ht, zend_string *key, zval *ptr)
 {
 	uint32_t idx = ht->nNumUsed++;
