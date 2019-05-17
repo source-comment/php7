@@ -80,6 +80,12 @@ static const unsigned char tolower_map[256] = {
 		zend_binary_strncasecmp
  */
 
+/**
+ * @description: 字符串转成整形数字，此函数用于存储单位转换
+ * @param char* str 输入字符串
+ * @param int str_len 字符串长度
+ * @return: int 字节数
+ */
 ZEND_API int ZEND_FASTCALL zend_atoi(const char *str, int str_len) /* {{{ */
 {
 	int retval;
@@ -87,7 +93,7 @@ ZEND_API int ZEND_FASTCALL zend_atoi(const char *str, int str_len) /* {{{ */
 	if (!str_len) {
 		str_len = (int)strlen(str);
 	}
-	retval = ZEND_STRTOL(str, NULL, 0);
+	retval = ZEND_STRTOL(str, NULL, 0);	//字符串转为数字，strtoll
 	if (str_len>0) {
 		switch (str[str_len-1]) {
 			case 'g':
@@ -108,6 +114,12 @@ ZEND_API int ZEND_FASTCALL zend_atoi(const char *str, int str_len) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 字符串转成长整形数字，此函数用于存储单位转换
+ * @param char* str 输入字符串
+ * @param int str_len 字符串长度
+ * @return: int 字节数
+ */
 ZEND_API zend_long ZEND_FASTCALL zend_atol(const char *str, int str_len) /* {{{ */
 {
 	zend_long retval;
@@ -136,14 +148,20 @@ ZEND_API zend_long ZEND_FASTCALL zend_atol(const char *str, int str_len) /* {{{ 
 }
 /* }}} */
 
+/**
+ * @description: 变量转换成字符串
+ * @param zval* op 待操作变量指针
+ * @param zend_bool silent 是否静默转换？
+ * @return: void
+ */
 void ZEND_FASTCALL _convert_scalar_to_number(zval *op, zend_bool silent) /* {{{ */
 {
 try_again:
 	switch (Z_TYPE_P(op)) {
-		case IS_REFERENCE:
+		case IS_REFERENCE:	//引用类型变量
 			zend_unwrap_reference(op);
 			goto try_again;
-		case IS_STRING:
+		case IS_STRING: //字符串类型变量
 			{
 				zend_string *str;
 
@@ -157,21 +175,21 @@ try_again:
 				zend_string_release(str);
 				break;
 			}
-		case IS_NULL:
-		case IS_FALSE:
+		case IS_NULL: 
+		case IS_FALSE: //NULL，FALSE转成0
 			ZVAL_LONG(op, 0);
 			break;
-		case IS_TRUE:
+		case IS_TRUE: //TRUE转成1
 			ZVAL_LONG(op, 1);
 			break;
-		case IS_RESOURCE:
+		case IS_RESOURCE:	//资源类型，转成资源句柄值
 			{
 				zend_long l = Z_RES_HANDLE_P(op);
 				zval_ptr_dtor(op);
 				ZVAL_LONG(op, l);
 			}
 			break;
-		case IS_OBJECT:
+		case IS_OBJECT:	//对象
 			convert_to_long_base(op, 10);
 			break;
 	}
@@ -309,6 +327,12 @@ ZEND_API void ZEND_FASTCALL convert_to_long(zval *op) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description:  变量转换成正整形
+ * @param zal* op 待操作变量指针
+ * @param int base 有效字符串规则
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL convert_to_long_base(zval *op, int base) /* {{{ */
 {
 	zend_long tmp;
@@ -316,23 +340,23 @@ ZEND_API void ZEND_FASTCALL convert_to_long_base(zval *op, int base) /* {{{ */
 try_again:
 	switch (Z_TYPE_P(op)) {
 		case IS_NULL:
-		case IS_FALSE:
+		case IS_FALSE:	//NULL,FALSE -> 0
 			ZVAL_LONG(op, 0);
 			break;
-		case IS_TRUE:
+		case IS_TRUE: //TRUE -> 1
 			ZVAL_LONG(op, 1);
 			break;
-		case IS_RESOURCE:
+		case IS_RESOURCE: 	//资源类型，转换为资源句柄ID
 			tmp = Z_RES_HANDLE_P(op);
 			zval_ptr_dtor(op);
 			ZVAL_LONG(op, tmp);
 			break;
 		case IS_LONG:
 			break;
-		case IS_DOUBLE:
+		case IS_DOUBLE:	//LONG ,DOUBLE 
 			ZVAL_LONG(op, zend_dval_to_lval(Z_DVAL_P(op)));
 			break;
-		case IS_STRING:
+		case IS_STRING:	//字符串转换，
 			{
 				zend_string *str = Z_STR_P(op);
 				if (base == 10) {
@@ -343,7 +367,7 @@ try_again:
 				zend_string_release(str);
 			}
 			break;
-		case IS_ARRAY:
+		case IS_ARRAY:	//数组类型，转换为有效元素个数量
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
 			zval_ptr_dtor(op);
 			ZVAL_LONG(op, tmp);
@@ -371,6 +395,11 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 变量转转换为浮点型
+ * @param zal* op 待操作变量指针
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL convert_to_double(zval *op) /* {{{ */
 {
 	double tmp;
@@ -378,24 +407,24 @@ ZEND_API void ZEND_FASTCALL convert_to_double(zval *op) /* {{{ */
 try_again:
 	switch (Z_TYPE_P(op)) {
 		case IS_NULL:
-		case IS_FALSE:
+		case IS_FALSE:	//NULL,FALSE -> 0.0
 			ZVAL_DOUBLE(op, 0.0);
 			break;
-		case IS_TRUE:
+		case IS_TRUE:	//TRUE -> 1.0
 			ZVAL_DOUBLE(op, 1.0);
 			break;
-		case IS_RESOURCE: {
+		case IS_RESOURCE: {	//资源类型，资源句柄强制转为double
 				double d = (double) Z_RES_HANDLE_P(op);
 				zval_ptr_dtor(op);
 				ZVAL_DOUBLE(op, d);
 			}
 			break;
-		case IS_LONG:
+		case IS_LONG:	//整形，强制转为double
 			ZVAL_DOUBLE(op, (double) Z_LVAL_P(op));
 			break;
-		case IS_DOUBLE:
+		case IS_DOUBLE:	//浮点型，不操作
 			break;
-		case IS_STRING:
+		case IS_STRING:	//字符串
 			{
 				zend_string *str = Z_STR_P(op);
 
@@ -403,12 +432,12 @@ try_again:
 				zend_string_release(str);
 			}
 			break;
-		case IS_ARRAY:
+		case IS_ARRAY:	//数组
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
 			zval_ptr_dtor(op);
 			ZVAL_DOUBLE(op, tmp);
 			break;
-		case IS_OBJECT:
+		case IS_OBJECT:	//对象
 			{
 				zval dst;
 
@@ -422,7 +451,7 @@ try_again:
 				}
 				break;
 			}
-		case IS_REFERENCE:
+		case IS_REFERENCE:	//引用，
 			zend_unwrap_reference(op);
 			goto try_again;
 		EMPTY_SWITCH_DEFAULT_CASE()
@@ -430,13 +459,23 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 变量转换为NULL
+ * @param zval* op 待操作变量指针 
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL convert_to_null(zval *op) /* {{{ */
 {
-	zval_ptr_dtor(op);
-	ZVAL_NULL(op);
+	zval_ptr_dtor(op);	//回收
+	ZVAL_NULL(op);	//转换
 }
 /* }}} */
 
+/**
+ * @description: 变量转为布尔类型
+ * @param zval* op 待操作变量指针 
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL convert_to_boolean(zval *op) /* {{{ */
 {
 	int tmp;
@@ -446,36 +485,37 @@ try_again:
 		case IS_FALSE:
 		case IS_TRUE:
 			break;
-		case IS_NULL:
+		case IS_NULL:	//NULL -> FALSE
 			ZVAL_FALSE(op);
 			break;
-		case IS_RESOURCE: {
+		case IS_RESOURCE: {	//资源类型，有句柄，TRUE,无句柄，FALSE
 				zend_long l = (Z_RES_HANDLE_P(op) ? 1 : 0);
 
 				zval_ptr_dtor(op);
 				ZVAL_BOOL(op, l);
 			}
 			break;
-		case IS_LONG:
+		case IS_LONG:	//整形，等于0，FALSE 否则，TRUE
 			ZVAL_BOOL(op, Z_LVAL_P(op) ? 1 : 0);
 			break;
-		case IS_DOUBLE:
+		case IS_DOUBLE://浮点，等于0，FALSE 否则，TRUE
 			ZVAL_BOOL(op, Z_DVAL_P(op) ? 1 : 0);
 			break;
-		case IS_STRING:
+		case IS_STRING:	//字符串
 			{
 				zend_string *str = Z_STR_P(op);
-
+				
+				//长度为0,或内容为"0"，转换为FALSE，否则转换为TRUE
 				if (ZSTR_LEN(str) == 0
 					|| (ZSTR_LEN(str) == 1 && ZSTR_VAL(str)[0] == '0')) {
-					ZVAL_FALSE(op);
+					ZVAL_FALSE(op);	
 				} else {
 					ZVAL_TRUE(op);
 				}
 				zend_string_release(str);
 			}
 			break;
-		case IS_ARRAY:
+		case IS_ARRAY:	//数组，有效元素书大于0，转换为TRUE,否则转换为FALSE
 			tmp = (zend_hash_num_elements(Z_ARRVAL_P(op))?1:0);
 			zval_ptr_dtor(op);
 			ZVAL_BOOL(op, tmp);

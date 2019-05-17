@@ -21,42 +21,44 @@
 #ifndef ZEND_INI_H
 #define ZEND_INI_H
 
-#define ZEND_INI_USER	(1<<0)
-#define ZEND_INI_PERDIR	(1<<1)
-#define ZEND_INI_SYSTEM	(1<<2)
+#define ZEND_INI_USER	(1<<0)	//配置项可以用户脚本中修改
+#define ZEND_INI_PERDIR	(1<<1) //配置项可以在php.ini、httpd.conf或.htaccess文件中修改
+#define ZEND_INI_SYSTEM	(1<<2)	//配置项可以在php.ini 和 httpd.conf 文件中修改
 
 #define ZEND_INI_ALL (ZEND_INI_USER|ZEND_INI_PERDIR|ZEND_INI_SYSTEM)
 
 #define ZEND_INI_MH(name) int name(zend_ini_entry *entry, zend_string *new_value, void *mh_arg1, void *mh_arg2, void *mh_arg3, int stage)
 #define ZEND_INI_DISP(name) void name(zend_ini_entry *ini_entry, int type)
 
+//默认配置结构体
 typedef struct _zend_ini_entry_def {
-	const char *name;
-	ZEND_INI_MH((*on_modify));
+	const char *name;	//配置名
+	ZEND_INI_MH((*on_modify));	//修改函数
 	void *mh_arg1;
 	void *mh_arg2;
 	void *mh_arg3;
-	const char *value;
-	void (*displayer)(zend_ini_entry *ini_entry, int type);
-	int modifiable;
+	const char *value;	//默认值
+	void (*displayer)(zend_ini_entry *ini_entry, int type);	//展示配置项
+	int modifiable;	//权限属性
 
-	uint32_t name_length;
-	uint32_t value_length;
+	uint32_t name_length;	//配置名长度
+	uint32_t value_length;	//值长度
 } zend_ini_entry_def;
 
+//配置存储结构体
 struct _zend_ini_entry {
-	zend_string *name;
-	ZEND_INI_MH((*on_modify));
+	zend_string *name;	//配置名称
+	ZEND_INI_MH((*on_modify));	//更新函数
 	void *mh_arg1;
 	void *mh_arg2;
 	void *mh_arg3;
-	zend_string *value;
-	zend_string *orig_value;
-	void (*displayer)(zend_ini_entry *ini_entry, int type);
-	int modifiable;
+	zend_string *value;	//配置值
+	zend_string *orig_value;	//配置原始值
+	void (*displayer)(zend_ini_entry *ini_entry, int type);	//展示函数
+	int modifiable;	//权限属性，是否允许修改
 
 	int orig_modifiable;
-	int modified;
+	int modified;	//是否修改过
 	int module_number;
 };
 
@@ -93,6 +95,7 @@ ZEND_API ZEND_INI_DISP(zend_ini_color_displayer_cb);
 ZEND_API ZEND_INI_DISP(display_link_numbers);
 END_EXTERN_C()
 
+//配置声明的开始和结束
 #define ZEND_INI_BEGIN()		static const zend_ini_entry_def ini_entries[] = {
 #define ZEND_INI_END()		{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0} };
 
@@ -136,11 +139,13 @@ END_EXTERN_C()
 	ZEND_INI_ENTRY3_EX(name, default_value, modifiable, on_modify, (void *) XtOffsetOf(struct_type, property_name), (void *) &struct_ptr, NULL, zend_ini_boolean_displayer_cb)
 #endif
 
+//获取整形，浮点型，字符串型，布尔型配置的当前值
 #define INI_INT(name) zend_ini_long((name), sizeof(name)-1, 0)
 #define INI_FLT(name) zend_ini_double((name), sizeof(name)-1, 0)
 #define INI_STR(name) zend_ini_string_ex((name), sizeof(name)-1, 0, NULL)
 #define INI_BOOL(name) ((zend_bool) INI_INT(name))
 
+//获取整形，浮点型，字符串型，布尔型配置的初始值
 #define INI_ORIG_INT(name)	zend_ini_long((name), sizeof(name)-1, 1)
 #define INI_ORIG_FLT(name)	zend_ini_double((name), sizeof(name)-1, 1)
 #define INI_ORIG_STR(name)	zend_ini_string((name), sizeof(name)-1, 1)
@@ -163,8 +168,8 @@ ZEND_API ZEND_INI_MH(OnUpdateString);
 ZEND_API ZEND_INI_MH(OnUpdateStringUnempty);
 END_EXTERN_C()
 
-#define ZEND_INI_DISPLAY_ORIG	1
-#define ZEND_INI_DISPLAY_ACTIVE	2
+#define ZEND_INI_DISPLAY_ORIG	1	//显示初始值
+#define ZEND_INI_DISPLAY_ACTIVE	2	//显示激活
 
 #define ZEND_INI_STAGE_STARTUP		(1<<0)
 #define ZEND_INI_STAGE_SHUTDOWN		(1<<1)

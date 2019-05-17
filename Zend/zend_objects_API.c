@@ -190,6 +190,11 @@ ZEND_API void zend_objects_store_put(zend_object *object)
             SET_OBJ_BUCKET_NUMBER(EG(objects_store).object_buckets[handle], EG(objects_store).free_list_head);	\
 			EG(objects_store).free_list_head = handle;
 
+/**
+ * @description: 从对象仓库删除一个对象
+ * @param zend_object* object 待删除对象
+ * @return: void
+ */
 ZEND_API void zend_objects_store_del(zend_object *object) /* {{{ */
 {
 	/*	Make sure we hold a reference count during the destructor call

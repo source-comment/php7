@@ -114,6 +114,7 @@ ZEND_API int zend_ini_startup(void) /* {{{ */
 }
 /* }}} */
 
+//停止函数，销毁配置表
 ZEND_API int zend_ini_shutdown(void) /* {{{ */
 {
 	zend_ini_dtor(EG(ini_directives));
@@ -121,6 +122,7 @@ ZEND_API int zend_ini_shutdown(void) /* {{{ */
 }
 /* }}} */
 
+//释放配置表
 ZEND_API void zend_ini_dtor(HashTable *ini_directives) /* {{{ */
 {
 	zend_hash_destroy(ini_directives);
@@ -128,6 +130,7 @@ ZEND_API void zend_ini_dtor(HashTable *ini_directives) /* {{{ */
 }
 /* }}} */
 
+//停止，释放全局配置表
 ZEND_API int zend_ini_global_shutdown(void) /* {{{ */
 {
 	zend_hash_destroy(registered_zend_ini_directives);
@@ -136,6 +139,7 @@ ZEND_API int zend_ini_global_shutdown(void) /* {{{ */
 }
 /* }}} */
 
+//将配置表设为无效
 ZEND_API int zend_ini_deactivate(void) /* {{{ */
 {
 	if (EG(modified_ini_directives)) {
@@ -180,6 +184,12 @@ ZEND_API int zend_copy_ini_directives(void) /* {{{ */
 /* }}} */
 #endif
 
+/**
+ * @description: 比较两个配置项
+ * @param void* a
+ * @param void* b
+ * @return: int a<b =-1；a>b =1; a==b = 0
+ */
 static int ini_key_compare(const void *a, const void *b) /* {{{ */
 {
 	const Bucket *f;
@@ -189,17 +199,19 @@ static int ini_key_compare(const void *a, const void *b) /* {{{ */
 	s = (const Bucket *) b;
 
 	if (!f->key && !s->key) { /* both numeric */
-		return ZEND_NORMALIZE_BOOL(f->h - s->h);
+		return ZEND_NORMALIZE_BOOL(f->h - s->h);	//比较哈希值
 	} else if (!f->key) { /* f is numeric, s is not */
 		return -1;
 	} else if (!s->key) { /* s is numeric, f is not */
 		return 1;
 	} else { /* both strings */
+		//比较字符串
 		return zend_binary_strcasecmp(ZSTR_VAL(f->key), ZSTR_LEN(f->key), ZSTR_VAL(s->key), ZSTR_LEN(s->key));
 	}
 }
 /* }}} */
 
+//排序配置表
 ZEND_API void zend_ini_sort_entries(void) /* {{{ */
 {
 	zend_hash_sort(EG(ini_directives), ini_key_compare, 0);
@@ -249,14 +261,16 @@ ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int 
 			if (p->name) {
 				zend_string_release(p->name);
 			}
+			//删除
 			zend_unregister_ini_entries(module_number);
 			return FAILURE;
 		}
 		if (((default_value = zend_get_configuration_directive(p->name)) != NULL) &&
             (!p->on_modify || p->on_modify(p, Z_STR_P(default_value), p->mh_arg1, p->mh_arg2, p->mh_arg3, ZEND_INI_STAGE_STARTUP) == SUCCESS)) {
-
+			//赋值为默认
 			p->value = zend_string_copy(Z_STR_P(default_value));
 		} else {
+			//初始化
 			p->value = ini_entry->value ?
 				zend_string_init(ini_entry->value, ini_entry->value_length, 1) : NULL;
 
@@ -270,6 +284,7 @@ ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int 
 }
 /* }}} */
 
+//注销配
 ZEND_API void zend_unregister_ini_entries(int module_number) /* {{{ */
 {
 	zend_hash_apply_with_argument(registered_zend_ini_directives, zend_remove_ini_entries, (void *) &module_number);
@@ -418,6 +433,13 @@ ZEND_API int zend_ini_register_displayer(char *name, uint32_t name_length, void 
  * Data retrieval
  */
 
+/**
+ * @description: 获取整形配置项的值
+ * @param char* name 配置名
+ * @param uint32_t name_length 配置名长度
+ * @param int orig 1初始值，0当前值
+ * @return: zend_long 初始值，或者当前值
+ */
 ZEND_API zend_long zend_ini_long(char *name, uint32_t name_length, int orig) /* {{{ */
 {
 	zend_ini_entry *ini_entry;
@@ -435,6 +457,13 @@ ZEND_API zend_long zend_ini_long(char *name, uint32_t name_length, int orig) /* 
 }
 /* }}} */
 
+/**
+ * @description: 获取浮点型配置项的值
+ * @param char* name 配置名
+ * @param uint32_t name_length 配置名长度
+ * @param int orig 1初始值，0当前值
+ * @return: double 初始值，或者当前值
+ */
 ZEND_API double zend_ini_double(char *name, uint32_t name_length, int orig) /* {{{ */
 {
 	zend_ini_entry *ini_entry;
@@ -452,6 +481,14 @@ ZEND_API double zend_ini_double(char *name, uint32_t name_length, int orig) /* {
 }
 /* }}} */
 
+/**
+ * @description: 获取字符型型配置项的值
+ * @param char* name 配置名
+ * @param uint32_t name_length 配置名长度
+ * @param int orig 1初始值，0当前值
+ * @param zend_bool *exists 配置是否存在，0不存在，1存在
+ * @return: char 初始值，或者当前值
+ */
 ZEND_API char *zend_ini_string_ex(char *name, uint32_t name_length, int orig, zend_bool *exists) /* {{{ */
 {
 	zend_ini_entry *ini_entry;
@@ -476,6 +513,13 @@ ZEND_API char *zend_ini_string_ex(char *name, uint32_t name_length, int orig, ze
 }
 /* }}} */
 
+/**
+ * @description: 获取字符型型配置项的值
+ * @param char* name 配置名
+ * @param uint32_t name_length 配置名长度
+ * @param int orig 1初始值，0当前值
+ * @return: char 初始值，或者当前值
+ */
 ZEND_API char *zend_ini_string(char *name, uint32_t name_length, int orig) /* {{{ */
 {
 	zend_bool exists = 1;
@@ -531,41 +575,43 @@ static void zend_ini_displayer_cb(zend_ini_entry *ini_entry, int type) /* {{{ */
 /* }}} */
 #endif
 
+//输出bool类型的配置
 ZEND_INI_DISP(zend_ini_boolean_displayer_cb) /* {{{ */
 {
 	int value;
 	zend_string *tmp_value;
 
-	if (type == ZEND_INI_DISPLAY_ORIG && ini_entry->modified) {
+	if (type == ZEND_INI_DISPLAY_ORIG && ini_entry->modified) { //是否输出初始值
 		tmp_value = (ini_entry->orig_value ? ini_entry->orig_value : NULL );
 	} else if (ini_entry->value) {
-		tmp_value = ini_entry->value;
+		tmp_value = ini_entry->value;	//当前值
 	} else {
-		tmp_value = NULL;
+		tmp_value = NULL;	//NULL值
 	}
 
 	if (tmp_value) {
-		if (ZSTR_LEN(tmp_value) == 4 && strcasecmp(ZSTR_VAL(tmp_value), "true") == 0) {
+		if (ZSTR_LEN(tmp_value) == 4 && strcasecmp(ZSTR_VAL(tmp_value), "true") == 0) { //判断字符串 "true"为真
 			value = 1;
-		} else if (ZSTR_LEN(tmp_value) == 3 && strcasecmp(ZSTR_VAL(tmp_value), "yes") == 0) {
+		} else if (ZSTR_LEN(tmp_value) == 3 && strcasecmp(ZSTR_VAL(tmp_value), "yes") == 0) {	//判断字符串 "yes"为真
 			value = 1;
-		} else if (ZSTR_LEN(tmp_value) == 2 && strcasecmp(ZSTR_VAL(tmp_value), "on") == 0) {
+		} else if (ZSTR_LEN(tmp_value) == 2 && strcasecmp(ZSTR_VAL(tmp_value), "on") == 0) {	//判断字符串 "no" 为假
 			value = 1;
 		} else {
-			value = atoi(ZSTR_VAL(tmp_value));
+			value = atoi(ZSTR_VAL(tmp_value));	//其他，转成整形
 		}
 	} else {
-		value = 0;
+		value = 0;	//其他任何情况都为 假
 	}
 
-	if (value) {
+	if (value) {	//为真输出On
 		ZEND_PUTS("On");
-	} else {
+	} else {	//为假输出Off
 		ZEND_PUTS("Off");
 	}
 }
 /* }}} */
 
+//输出颜色类型的配置
 ZEND_INI_DISP(zend_ini_color_displayer_cb) /* {{{ */
 {
 	char *value;
@@ -579,20 +625,21 @@ ZEND_INI_DISP(zend_ini_color_displayer_cb) /* {{{ */
 	}
 	if (value) {
 		if (zend_uv.html_errors) {
-			zend_printf("<font style=\"color: %s\">%s</font>", value, value);
+			zend_printf("<font style=\"color: %s\">%s</font>", value, value); //输出html代码的颜色以及色值
 		} else {
-			ZEND_PUTS(value);
+			ZEND_PUTS(value);	//输出颜色值
 		}
 	} else {
 		if (zend_uv.html_errors) {
-			ZEND_PUTS(NO_VALUE_HTML);
+			ZEND_PUTS(NO_VALUE_HTML);	//输出html样式的 no value
 		} else {
-			ZEND_PUTS(NO_VALUE_PLAINTEXT);
+			ZEND_PUTS(NO_VALUE_PLAINTEXT); //输出 "no value"
 		}
 	}
 }
 /* }}} */
 
+//输出数值型配置项，例如限制类数值？
 ZEND_INI_DISP(display_link_numbers) /* {{{ */
 {
 	char *value;
@@ -606,10 +653,10 @@ ZEND_INI_DISP(display_link_numbers) /* {{{ */
 	}
 
 	if (value) {
-		if (atoi(value) == -1) {
-			ZEND_PUTS("Unlimited");
+		if (atoi(value) == -1) {	//-1 为无限制
+			ZEND_PUTS("Unlimited");	//输出 "Unlimited"
 		} else {
-			zend_printf("%s", value);
+			zend_printf("%s", value); //其他为限制具体数值 以字符串的形式输出
 		}
 	}
 }
