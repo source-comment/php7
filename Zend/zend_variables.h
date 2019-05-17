@@ -34,28 +34,48 @@ ZEND_API void ZEND_FASTCALL _zval_copy_ctor_func(zval *zvalue ZEND_FILE_LINE_DC)
 #define zval_dtor_func(zv)         _zval_dtor_func(zv ZEND_FILE_LINE_CC)
 #define zval_copy_ctor_func(zv)    _zval_copy_ctor_func(zv ZEND_FILE_LINE_CC)
 
+/**
+ * @description: 无GC变量回收函数
+ * @param zval* zval_ptr 待回收变量指针
+ * @return: void
+ */
 static zend_always_inline void _zval_ptr_dtor_nogc(zval *zval_ptr ZEND_FILE_LINE_DC)
 {
 	if (Z_REFCOUNTED_P(zval_ptr) && !Z_DELREF_P(zval_ptr)) {
+		//gc类型，并且引用计数减小之后等于0，直接销毁
 		_zval_dtor_func(Z_COUNTED_P(zval_ptr) ZEND_FILE_LINE_RELAY_CC);
 	}
 }
 
+/**
+ * @description: 变量回收函数
+ * @param zval* zval_ptr 待回收变量指针
+ * @return: void
+ */
 static zend_always_inline void i_zval_ptr_dtor(zval *zval_ptr ZEND_FILE_LINE_DC)
 {
 	if (Z_REFCOUNTED_P(zval_ptr)) {
 		zend_refcounted *ref = Z_COUNTED_P(zval_ptr);
-		if (!--GC_REFCOUNT(ref)) {
+		if (!--GC_REFCOUNT(ref)) { 
+			//如果引用计数减小之后为0，调用销毁函数销毁
 			_zval_dtor_func(ref ZEND_FILE_LINE_RELAY_CC);
 		} else {
+			//引用计数减小之后仍然大于0，则加入GC的root池
 			gc_check_possible_root(ref);
 		}
 	}
 }
 
+/**
+ * @description: 变量复制函数
+ * @param zval* zvalue 待复制的变量指针
+ * @return: void
+ */
 static zend_always_inline void _zval_copy_ctor(zval *zvalue ZEND_FILE_LINE_DC)
 {
+	//如果变量属性为引用计数或者可复制
 	if (Z_REFCOUNTED_P(zvalue) || Z_COPYABLE_P(zvalue)) {
+		//如果变量属性为可复制，则复制一个变量，否则引用计数加1
 		if (Z_COPYABLE_P(zvalue)) {
 			_zval_copy_ctor_func(zvalue ZEND_FILE_LINE_RELAY_CC);
 		} else {
@@ -64,6 +84,11 @@ static zend_always_inline void _zval_copy_ctor(zval *zvalue ZEND_FILE_LINE_DC)
 	}
 }
 
+/**
+ * @description: 变量复制函数
+ * @param zval* zvalue 待复制的变量指针
+ * @return: void
+ */
 static zend_always_inline void _zval_opt_copy_ctor(zval *zvalue ZEND_FILE_LINE_DC)
 {
 	if (Z_OPT_REFCOUNTED_P(zvalue) || Z_OPT_COPYABLE_P(zvalue)) {
