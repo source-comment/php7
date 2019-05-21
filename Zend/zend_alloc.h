@@ -71,18 +71,30 @@ typedef struct _zend_mm_debug_info {
 BEGIN_EXTERN_C()
 
 ZEND_API char*  ZEND_FASTCALL zend_strndup(const char *s, size_t length) ZEND_ATTRIBUTE_MALLOC;
-
+/*函数名中待safe的，会检测内存地址的整数溢出*/
+//申请内存
 ZEND_API void*  ZEND_FASTCALL _emalloc(size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_MALLOC ZEND_ATTRIBUTE_ALLOC_SIZE(1);
+//安全的申请内存
 ZEND_API void*  ZEND_FASTCALL _safe_emalloc(size_t nmemb, size_t size, size_t offset ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_MALLOC;
+//安全的向系统内存
 ZEND_API void*  ZEND_FASTCALL _safe_malloc(size_t nmemb, size_t size, size_t offset) ZEND_ATTRIBUTE_MALLOC;
+//释放内存
 ZEND_API void   ZEND_FASTCALL _efree(void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC);
+//申请内存并初始化为0
 ZEND_API void*  ZEND_FASTCALL _ecalloc(size_t nmemb, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_MALLOC ZEND_ATTRIBUTE_ALLOC_SIZE2(1,2);
+//扩展内存空间（先判断*ptr是否有size的连续空间，有则扩大，没有则重新申请size的内存，将原内存数据复制到新指针，返回新指针，释放原指针）
 ZEND_API void*  ZEND_FASTCALL _erealloc(void *ptr, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_ALLOC_SIZE(2);
+//扩展内存空间（先判断*ptr是否有size的连续空间，有则扩大，没有则重新申请size的内存，将原内存数据复制(size字节)到新指针，返回新指针，释放原指针）
 ZEND_API void*  ZEND_FASTCALL _erealloc2(void *ptr, size_t size, size_t copy_size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_ALLOC_SIZE(2);
+//安全的扩展内存空间
 ZEND_API void*  ZEND_FASTCALL _safe_erealloc(void *ptr, size_t nmemb, size_t size, size_t offset ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC);
+//安全的向系统扩展内存空间
 ZEND_API void*  ZEND_FASTCALL _safe_realloc(void *ptr, size_t nmemb, size_t size, size_t offset);
+//复制一个字符串并返回（新开辟内存空间）
 ZEND_API char*  ZEND_FASTCALL _estrdup(const char *s ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_MALLOC;
+//复制一个字符串的length字节并返回（新开辟内存空间）
 ZEND_API char*  ZEND_FASTCALL _estrndup(const char *s, size_t length ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) ZEND_ATTRIBUTE_MALLOC;
+//返回内存块的大小
 ZEND_API size_t ZEND_FASTCALL _zend_mem_block_size(void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC);
 
 #include "zend_alloc_sizes.h"
@@ -156,45 +168,76 @@ ZEND_API void ZEND_FASTCALL _efree_huge(void *, size_t size);
 #endif
 
 /* Standard wrapper macros */
+//申请内存
 #define emalloc(size)						_emalloc((size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//申请large内存
 #define emalloc_large(size)					_emalloc_large((size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//申请huge内存
 #define emalloc_huge(size)					_emalloc_huge((size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//安全申请内存
 #define safe_emalloc(nmemb, size, offset)	_safe_emalloc((nmemb), (size), (offset) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//安全释放内存
 #define efree(ptr)							_efree((ptr) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//释放large内存
 #define efree_large(ptr)					_efree_large((ptr) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//释放huge内存
 #define efree_huge(ptr)						_efree_huge((ptr) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//释放并初化为0
 #define ecalloc(nmemb, size)				_ecalloc((nmemb), (size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//扩展内存空间
 #define erealloc(ptr, size)					_erealloc((ptr), (size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//扩展内存空间
 #define erealloc2(ptr, size, copy_size)		_erealloc2((ptr), (size), (copy_size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//安全扩展内存空间
 #define safe_erealloc(ptr, nmemb, size, offset)	_safe_erealloc((ptr), (nmemb), (size), (offset) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
 #define erealloc_recoverable(ptr, size)		_erealloc((ptr), (size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
 #define erealloc2_recoverable(ptr, size, copy_size) _erealloc2((ptr), (size), (copy_size) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//复制出一个新字符串
 #define estrdup(s)							_estrdup((s) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//复制length到一个新的字符串
 #define estrndup(s, length)					_estrndup((s), (length) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
+//返回指针所在块大小
 #define zend_mem_block_size(ptr)			_zend_mem_block_size((ptr) ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC)
 
+
 /* Relay wrapper macros */
+//申请内存
 #define emalloc_rel(size)						_emalloc((size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//安全申请内存
 #define safe_emalloc_rel(nmemb, size, offset)	_safe_emalloc((nmemb), (size), (offset) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//释放内存
 #define efree_rel(ptr)							_efree((ptr) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//申请并初始化为0
 #define ecalloc_rel(nmemb, size)				_ecalloc((nmemb), (size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//扩展内存空间
 #define erealloc_rel(ptr, size)					_erealloc((ptr), (size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//扩展内存空间保留原空间copy_size字节的数据
 #define erealloc2_rel(ptr, size, copy_size)		_erealloc2((ptr), (size), (copy_size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
 #define erealloc_recoverable_rel(ptr, size)		_erealloc((ptr), (size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
 #define erealloc2_recoverable_rel(ptr, size, copy_size) _erealloc2((ptr), (size), (copy_size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//安全扩展内存空间
 #define safe_erealloc_rel(ptr, nmemb, size, offset)	_safe_erealloc((ptr), (nmemb), (size), (offset) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//复制一个新的字符串
 #define estrdup_rel(s)							_estrdup((s) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//复制字符串length字节到新的字符串
 #define estrndup_rel(s, length)					_estrndup((s), (length) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
+//内存块大小
 #define zend_mem_block_size_rel(ptr)			_zend_mem_block_size((ptr) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_CC)
 
 ZEND_API void * __zend_malloc(size_t len) ZEND_ATTRIBUTE_MALLOC ZEND_ATTRIBUTE_ALLOC_SIZE(1);
 ZEND_API void * __zend_calloc(size_t nmemb, size_t len) ZEND_ATTRIBUTE_MALLOC ZEND_ATTRIBUTE_ALLOC_SIZE2(1,2);
 ZEND_API void * __zend_realloc(void *p, size_t len) ZEND_ATTRIBUTE_ALLOC_SIZE(2);
 
-/* Selective persistent/non persistent allocation macros */
+/* Selective persistent/non persistent allocation macros 
+ * 下面的宏定义都包含persistent参数，如果persistent为真，内存的操作直接由操作系统处理，否则由内存池（ZMM）管理
+*/
+//申请内存
 #define pemalloc(size, persistent) ((persistent)?__zend_malloc(size):emalloc(size))
+//安全的申请内存
 #define safe_pemalloc(nmemb, size, offset, persistent)	((persistent)?_safe_malloc(nmemb, size, offset):safe_emalloc(nmemb, size, offset))
+//释放内存
 #define pefree(ptr, persistent)  ((persistent)?free(ptr):efree(ptr))
+//释放size字节的内存
 #define pefree_size(ptr, size, persistent)  do { \
 		if (persistent) { \
 			free(ptr); \
@@ -203,13 +246,19 @@ ZEND_API void * __zend_realloc(void *p, size_t len) ZEND_ATTRIBUTE_ALLOC_SIZE(2)
 		} \
 	} while (0)
 
+//申请内存并初始化
 #define pecalloc(nmemb, size, persistent) ((persistent)?__zend_calloc((nmemb), (size)):ecalloc((nmemb), (size)))
+//扩展内存空间
 #define perealloc(ptr, size, persistent) ((persistent)?__zend_realloc((ptr), (size)):erealloc((ptr), (size)))
+//扩展内存空间，并保留原内存copy_size字节的数据
 #define perealloc2(ptr, size, copy_size, persistent) ((persistent)?__zend_realloc((ptr), (size)):erealloc2((ptr), (size), (copy_size)))
+//安全扩展内存
 #define safe_perealloc(ptr, nmemb, size, offset, persistent)	((persistent)?_safe_realloc((ptr), (nmemb), (size), (offset)):safe_erealloc((ptr), (nmemb), (size), (offset)))
 #define perealloc_recoverable(ptr, size, persistent) ((persistent)?realloc((ptr), (size)):erealloc_recoverable((ptr), (size)))
 #define perealloc2_recoverable(ptr, size, persistent) ((persistent)?realloc((ptr), (size)):erealloc2_recoverable((ptr), (size), (copy_size)))
+//复制出一个新的字符串
 #define pestrdup(s, persistent) ((persistent)?strdup(s):estrdup(s))
+//复制字符串的length字节到新的字符串
 #define pestrndup(s, length, persistent) ((persistent)?zend_strndup((s),(length)):estrndup((s),(length)))
 
 #define pemalloc_rel(size, persistent) ((persistent)?__zend_malloc(size):emalloc_rel(size))
@@ -299,6 +348,7 @@ typedef void  (*zend_mm_chunk_free_t)(zend_mm_storage *storage, void *chunk, siz
 typedef int   (*zend_mm_chunk_truncate_t)(zend_mm_storage *storage, void *chunk, size_t old_size, size_t new_size);
 typedef int   (*zend_mm_chunk_extend_t)(zend_mm_storage *storage, void *chunk, size_t old_size, size_t new_size);
 
+//内存池钩子结构体
 typedef struct _zend_mm_handlers {
 	zend_mm_chunk_alloc_t       chunk_alloc;
 	zend_mm_chunk_free_t        chunk_free;

@@ -146,10 +146,15 @@ static size_t _real_page_size = ZEND_MM_PAGE_SIZE;
 typedef uint32_t   zend_mm_page_info; /* 4-byte integer */
 typedef zend_ulong zend_mm_bitset;    /* 4-byte or 8-byte integer */
 
+//计算size根据aligment对齐之后所在块首地址与alignment的偏移量
 #define ZEND_MM_ALIGNED_OFFSET(size, alignment) \
 	(((size_t)(size)) & ((alignment) - 1))
+
+//得出size根据alignment对齐之后所在块的首地址
 #define ZEND_MM_ALIGNED_BASE(size, alignment) \
 	(((size_t)(size)) & ~((alignment) - 1))
+
+//根据size和aligment计算出可以分配的数量
 #define ZEND_MM_SIZE_TO_NUM(size, alignment) \
 	(((size_t)(size) + ((alignment) - 1)) / (alignment))
 
@@ -159,8 +164,8 @@ typedef zend_ulong zend_mm_bitset;    /* 4-byte or 8-byte integer */
 typedef zend_mm_bitset zend_mm_page_map[ZEND_MM_PAGE_MAP_LEN];     /* 64B */
 
 #define ZEND_MM_IS_FRUN                  0x00000000
-#define ZEND_MM_IS_LRUN                  0x40000000
-#define ZEND_MM_IS_SRUN                  0x80000000
+#define ZEND_MM_IS_LRUN                  0x40000000	//large内存
+#define ZEND_MM_IS_SRUN                  0x80000000	//small内存
 
 #define ZEND_MM_LRUN_PAGES_MASK          0x000003ff
 #define ZEND_MM_LRUN_PAGES_OFFSET        0
@@ -235,29 +240,29 @@ struct _zend_mm_heap {
 	zend_mm_storage   *storage;
 #endif
 #if ZEND_MM_STAT
-	size_t             size;                    /* current memory usage */
-	size_t             peak;                    /* peak memory usage */
+	size_t             size;                    /* current memory usage PHP已用内存*/
+	size_t             peak;                    /* peak memory usage PHP已用峰值*/
 #endif
-	zend_mm_free_slot *free_slot[ZEND_MM_BINS]; /* free lists for small sizes */
+	zend_mm_free_slot *free_slot[ZEND_MM_BINS]; /* free lists for small sizes 可用小内存(small)链表*/
 #if ZEND_MM_STAT || ZEND_MM_LIMIT
-	size_t             real_size;               /* current size of allocated pages */
+	size_t             real_size;               /* current size of allocated pages 内存池实际向系统申请的内存 */
 #endif
 #if ZEND_MM_STAT
-	size_t             real_peak;               /* peak size of allocated pages */
+	size_t             real_peak;               /* peak size of allocated pages 内存池向系统申请内存的峰值*/
 #endif
 #if ZEND_MM_LIMIT
-	size_t             limit;                   /* memory limit */
-	int                overflow;                /* memory overflow flag */
+	size_t             limit;                   /* memory limit 内存使用上限(php.ini中memory_limit控制)*/
+	int                overflow;                /* memory overflow flag 内存溢出标志*/
 #endif
 
 	zend_mm_huge_list *huge_list;               /* list of huge allocated blocks */
 
-	zend_mm_chunk     *main_chunk;
-	zend_mm_chunk     *cached_chunks;			/* list of unused chunks */
-	int                chunks_count;			/* number of alocated chunks */
-	int                peak_chunks_count;		/* peak number of allocated chunks for current request */
-	int                cached_chunks_count;		/* number of cached chunks */
-	double             avg_chunks_count;		/* average number of chunks allocated per request */
+	zend_mm_chunk     *main_chunk;			//可用chunk内存链表
+	zend_mm_chunk     *cached_chunks;			/* list of unused chunks 缓存chunk内存链表，向系统申请内存优先从此处取出*/
+	int                chunks_count;			/* number of alocated chunks chunks 可用内存数量*/
+	int                peak_chunks_count;		/* peak number of allocated chunks for current request 每次请求申请chunk的峰值*/
+	int                cached_chunks_count;		/* number of cached chunks 缓存池chunk数量*/
+	double             avg_chunks_count;		/* average number of chunks allocated per request 每次请求分配的平均chunk数量 */
 	int                last_chunks_delete_boundary; /* numer of chunks after last deletion */
 	int                last_chunks_delete_count;    /* number of deletion over the last boundary */
 #if ZEND_MM_CUSTOM
@@ -276,19 +281,21 @@ struct _zend_mm_heap {
 #endif
 };
 
+//chunk内存结构
 struct _zend_mm_chunk {
-	zend_mm_heap      *heap;
-	zend_mm_chunk     *next;
-	zend_mm_chunk     *prev;
-	uint32_t           free_pages;				/* number of free pages */
-	uint32_t           free_tail;               /* number of free pages at the end of chunk */
-	uint32_t           num;
+	zend_mm_heap      *heap;	//内存管理器指针，指向_zend_mm_heap
+	zend_mm_chunk     *next;	//下一个chunk
+	zend_mm_chunk     *prev;	//上一个chunk
+	uint32_t           free_pages;				/* number of free pages 可用page数量*/
+	uint32_t           free_tail;               /* number of free pages at the end of chunk page池尾部连续可用page的首个page位置*/
+	uint32_t           num;	//当前chunk的坐标，也是申请chunk的数量
 	char               reserve[64 - (sizeof(void*) * 3 + sizeof(uint32_t) * 3)];
-	zend_mm_heap       heap_slot;               /* used only in main chunk */
-	zend_mm_page_map   free_map;                /* 512 bits or 64 bytes */
-	zend_mm_page_info  map[ZEND_MM_PAGES];      /* 2 KB = 512 * 4 */
+	zend_mm_heap       heap_slot;               /* used only in main chunk 第一个chunk有用*/
+	zend_mm_page_map   free_map;                /* 512 bits or 64 bytes 当前chunk中所有page的状态,用bit位标记，0未使用，1已使用*/
+	zend_mm_page_info  map[ZEND_MM_PAGES];     /* 2 KB = 512 * 4 512个page，每个page的状态，用32位表示 */
 };
 
+//page所用结构体,4kb数组
 struct _zend_mm_page {
 	char               bytes[ZEND_MM_PAGE_SIZE];
 };
@@ -301,19 +308,22 @@ struct _zend_mm_bin {
 	char               bytes[ZEND_MM_PAGE_SIZE * 8];
 };
 
+//可用solt链表
 struct _zend_mm_free_slot {
 	zend_mm_free_slot *next_free_slot;
 };
 
+//huge规格内存结构体
 struct _zend_mm_huge_list {
-	void              *ptr;
-	size_t             size;
-	zend_mm_huge_list *next;
+	void              *ptr;		//地址
+	size_t             size;	//大小
+	zend_mm_huge_list *next;	//下一个
 #if ZEND_DEBUG
 	zend_mm_debug_info dbg;
 #endif
 };
 
+//page首地址
 #define ZEND_MM_PAGE_ADDR(chunk, page_num) \
 	((void*)(((zend_mm_page*)(chunk)) + (page_num)))
 
@@ -418,6 +428,12 @@ stderr_last_error(char *msg)
 /* OS Allocation */
 /*****************/
 
+/**
+ * @description: 根据addr映射内存区size字节
+ * @param void* addr 内存地址
+ * @param size_t 内存区大小
+ * @return: void* 内存地址
+ */
 static void *zend_mm_mmap_fixed(void *addr, size_t size)
 {
 #ifdef _WIN32
@@ -443,6 +459,11 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 #endif
 }
 
+/**
+ * @description: 开辟一块内存空间（使用mmap函数进行内存映射）
+ * @param size_t size 内存空间大小(Bytes)
+ * @return: void*
+ */
 static void *zend_mm_mmap(size_t size)
 {
 #ifdef _WIN32
@@ -479,6 +500,12 @@ static void *zend_mm_mmap(size_t size)
 #endif
 }
 
+/**
+ * @description: 释放内存（使用munmap函数解除内存映射）
+ * @param void* addr 内存地址
+ * @param size_t size 要解除映射区的大小(Bytes)
+ * @return: void
+ */
 static void zend_mm_munmap(void *addr, size_t size)
 {
 #ifdef _WIN32
@@ -702,9 +729,15 @@ static zend_always_inline int zend_mm_bitset_is_free_range(zend_mm_bitset *bitse
 /* Chunks */
 /**********/
 
+/**
+ * @description: 初始化chunk内存
+ * @param size_t size 内存大小
+ * @param size_t alignment 对齐尺寸
+ * @return: void* 内存地址
+ */
 static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 {
-	void *ptr = zend_mm_mmap(size);
+	void *ptr = zend_mm_mmap(size);	//开辟内存
 
 	if (ptr == NULL) {
 		return NULL;
@@ -714,12 +747,15 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 			madvise(ptr, size, MADV_HUGEPAGE);
 		}
 #endif
+		//如果申请的内存首地址是根据对齐尺寸对齐的，则直接返回内存地址
 		return ptr;
 	} else {
 		size_t offset;
 
 		/* chunk has to be aligned */
+		//如果首地址不是对齐的，则先释放内存
 		zend_mm_munmap(ptr, size);
+		//重新申请size+alignment的内存
 		ptr = zend_mm_mmap(size + alignment - REAL_PAGE_SIZE);
 #ifdef _WIN32
 		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
@@ -732,14 +768,15 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		}
 		return ptr;
 #else
-		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
+		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment); //计算ptr与alignment上一个对齐地址的偏移量
 		if (offset != 0) {
 			offset = alignment - offset;
-			zend_mm_munmap(ptr, offset);
-			ptr = (char*)ptr + offset;
-			alignment -= offset;
+			zend_mm_munmap(ptr, offset);	//释放ptr与alignment下个对齐之间的空间
+			ptr = (char*)ptr + offset;	//ptr移动到下一个alignment对齐地址
+			alignment -= offset;	//计算多申请的空间大小
 		}
 		if (alignment > REAL_PAGE_SIZE) {
+			//释放多于的空间
 			zend_mm_munmap((char*)ptr + size, alignment - REAL_PAGE_SIZE);
 		}
 # ifdef MADV_HUGEPAGE
@@ -752,6 +789,13 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 	}
 }
 
+/**
+ * @description: 申请chunk内存
+ * @param zend_mm_heap* heap 地址 
+ * @param size_t size 申请大小
+ * @param size_t alignment 对齐尺寸
+ * @return: void*
+ */
 static void *zend_mm_chunk_alloc(zend_mm_heap *heap, size_t size, size_t alignment)
 {
 #if ZEND_MM_STORAGE
@@ -764,6 +808,14 @@ static void *zend_mm_chunk_alloc(zend_mm_heap *heap, size_t size, size_t alignme
 	return zend_mm_chunk_alloc_int(size, alignment);
 }
 
+/**
+ * @description: 释放chunk内存
+ * @param zend_mm_heap* heap 地址 
+ * @param void* addr 释放的内存地址
+ * @param size_t size 释放内存区大小
+ * @return: void*
+ */
+
 static void zend_mm_chunk_free(zend_mm_heap *heap, void *addr, size_t size)
 {
 #if ZEND_MM_STORAGE
@@ -775,11 +827,19 @@ static void zend_mm_chunk_free(zend_mm_heap *heap, void *addr, size_t size)
 	zend_mm_munmap(addr, size);
 }
 
+/**
+ * @description: 截断chunk内存区
+ * @param zend_mm_heap* heap 
+ * @param void* addr 内存区地址
+ * @param size_t old_size 原内存区大小
+ * @param size_t new_size 截断之后内存区大小
+ * @return: 
+ */
 static int zend_mm_chunk_truncate(zend_mm_heap *heap, void *addr, size_t old_size, size_t new_size)
 {
 #if ZEND_MM_STORAGE
 	if (UNEXPECTED(heap->storage)) {
-		if (heap->storage->handlers.chunk_truncate) {
+		if (heap->storage->handlers.chunk_truncate) {	//是否注册钩子函数
 			return heap->storage->handlers.chunk_truncate(heap->storage, addr, old_size, new_size);
 		} else {
 			return 0;
@@ -787,18 +847,26 @@ static int zend_mm_chunk_truncate(zend_mm_heap *heap, void *addr, size_t old_siz
 	}
 #endif
 #ifndef _WIN32
-	zend_mm_munmap((char*)addr + new_size, old_size - new_size);
+	zend_mm_munmap((char*)addr + new_size, old_size - new_size);	//将new_size的内存区保留，剩余的解除映射
 	return 1;
 #else
 	return 0;
 #endif
 }
 
+/**
+ * @description: 扩展chunk内存区
+ * @param zend_mm_heap* heap 
+ * @param void* addr 内存区地址
+ * @param size_t old_size 原内存区大小
+ * @param size_t new_size 扩展之后内存区大小
+ * @return: 
+ */
 static int zend_mm_chunk_extend(zend_mm_heap *heap, void *addr, size_t old_size, size_t new_size)
 {
 #if ZEND_MM_STORAGE
 	if (UNEXPECTED(heap->storage)) {
-		if (heap->storage->handlers.chunk_extend) {
+		if (heap->storage->handlers.chunk_extend) { //如果已绑定扩展钩子函数，则调用
 			return heap->storage->handlers.chunk_extend(heap->storage, addr, old_size, new_size);
 		} else {
 			return 0;
@@ -806,27 +874,34 @@ static int zend_mm_chunk_extend(zend_mm_heap *heap, void *addr, size_t old_size,
 	}
 #endif
 #ifndef _WIN32
+	//映射内存
 	return (zend_mm_mmap_fixed((char*)addr + old_size, new_size - old_size) != NULL);
 #else
 	return 0;
 #endif
 }
 
+/**
+ * @description: chunk内存初始化
+ * @param zend_mm_heap* heap指针
+ * param zend_mm_chunk* chunk指针
+ * @return: void
+ */
 static zend_always_inline void zend_mm_chunk_init(zend_mm_heap *heap, zend_mm_chunk *chunk)
 {
-	chunk->heap = heap;
-	chunk->next = heap->main_chunk;
-	chunk->prev = heap->main_chunk->prev;
-	chunk->prev->next = chunk;
-	chunk->next->prev = chunk;
+	chunk->heap = heap;	//绑定heap指针到chunk->heap属性，
+	chunk->next = heap->main_chunk;	//chunk的下一个指向main_chunk
+	chunk->prev = heap->main_chunk->prev;	//chunk的前一个指向main_chunk的前一个
+	chunk->prev->next = chunk;	//chunk前一个的下一个指向自己
+	chunk->next->prev = chunk;	//chunk下一个的前一个指向自己
 	/* mark first pages as allocated */
-	chunk->free_pages = ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE;
-	chunk->free_tail = ZEND_MM_FIRST_PAGE;
+	chunk->free_pages = ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE;	//初始化可用page，第一个page自己用
+	chunk->free_tail = ZEND_MM_FIRST_PAGE;	//最后可用连续可用page的首地址
 	/* the younger chunks have bigger number */
-	chunk->num = chunk->prev->num + 1;
+	chunk->num = chunk->prev->num + 1;	//当前chunk的数量
 	/* mark first pages as allocated */
-	chunk->free_map[0] = (1L << ZEND_MM_FIRST_PAGE) - 1;
-	chunk->map[0] = ZEND_MM_LRUN(ZEND_MM_FIRST_PAGE);
+	chunk->free_map[0] = (1L << ZEND_MM_FIRST_PAGE) - 1;	//标记第一个page为已使用
+	chunk->map[0] = ZEND_MM_LRUN(ZEND_MM_FIRST_PAGE);	//标记第一个map的属性
 }
 
 /***********************/
@@ -847,17 +922,24 @@ static void zend_mm_change_huge_block_size(zend_mm_heap *heap, void *ptr, size_t
 /* Large Runs */
 /**************/
 
+/**
+ * @description: 申请page内存
+ * @param zend_mm_heap* heap管理器首地址
+ * @param uint32_t pages_count page数量
+ * @return: 
+ */
 #if ZEND_DEBUG
 static void *zend_mm_alloc_pages(zend_mm_heap *heap, uint32_t pages_count, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 #else
 static void *zend_mm_alloc_pages(zend_mm_heap *heap, uint32_t pages_count ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 #endif
 {
-	zend_mm_chunk *chunk = heap->main_chunk;
+	zend_mm_chunk *chunk = heap->main_chunk;	//第一个chunk块
 	uint32_t page_num, len;
 	int steps = 0;
 
 	while (1) {
+		//如果第一个块的可用page数小于申请page数，跳到未找到
 		if (UNEXPECTED(chunk->free_pages < pages_count)) {
 			goto not_found;
 #if 0
@@ -974,15 +1056,17 @@ static void *zend_mm_alloc_pages(zend_mm_heap *heap, uint32_t pages_count ZEND_F
 not_found:
 		if (chunk->next == heap->main_chunk) {
 get_chunk:
-			if (heap->cached_chunks) {
-				heap->cached_chunks_count--;
-				chunk = heap->cached_chunks;
-				heap->cached_chunks = chunk->next;
+			if (heap->cached_chunks) {	//如果缓存中有可用chunk
+				heap->cached_chunks_count--;	//缓存计数减一
+				chunk = heap->cached_chunks;	//从缓存中取第一个chunk
+				heap->cached_chunks = chunk->next;	//第二个设为第一个
 			} else {
 #if ZEND_MM_LIMIT
+				//如果缓存中没有可用chunk，并且再向系统申请内存已经超过限制
 				if (UNEXPECTED(heap->real_size + ZEND_MM_CHUNK_SIZE > heap->limit)) {
+					//先清理内存池，再重新申请
 					if (zend_mm_gc(heap)) {
-						goto get_chunk;
+						goto get_chunk;	//回到检查缓存池是否有可用chunk那步
 					} else if (heap->overflow == 0) {
 #if ZEND_DEBUG
 						zend_mm_safe_error(heap, "Allowed memory size of %zu bytes exhausted at %s:%d (tried to allocate %zu bytes)", heap->limit, __zend_filename, __zend_lineno, size);
@@ -993,8 +1077,10 @@ get_chunk:
 					}
 				}
 #endif
+				//申请chunk内存
 				chunk = (zend_mm_chunk*)zend_mm_chunk_alloc(heap, ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
 				if (UNEXPECTED(chunk == NULL)) {
+					//申请失败，则清理内存池，清理成功再申请
 					/* insufficient memory */
 					if (zend_mm_gc(heap) &&
 					    (chunk = (zend_mm_chunk*)zend_mm_chunk_alloc(heap, ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE)) != NULL) {
@@ -1012,6 +1098,7 @@ get_chunk:
 				}
 #if ZEND_MM_STAT
 				do {
+					//申请成功，则设置实际申请内存size和peak峰值
 					size_t size = heap->real_size + ZEND_MM_CHUNK_SIZE;
 					size_t peak = MAX(heap->real_peak, size);
 					heap->real_size = size;
@@ -1022,23 +1109,23 @@ get_chunk:
 
 #endif
 			}
-			heap->chunks_count++;
-			if (heap->chunks_count > heap->peak_chunks_count) {
+			heap->chunks_count++;	//可用chunk增加
+			if (heap->chunks_count > heap->peak_chunks_count) {	//如果可用chunk数大于峰值chunk数，则更新峰值chunk为可用chunk数
 				heap->peak_chunks_count = heap->chunks_count;
 			}
-			zend_mm_chunk_init(heap, chunk);
+			zend_mm_chunk_init(heap, chunk);	//初始化chunk
 			page_num = ZEND_MM_FIRST_PAGE;
 			len = ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE;
 			goto found;
 		} else {
-			chunk = chunk->next;
-			steps++;
+			chunk = chunk->next;	//查找下一个chunk
+			steps++;	//查找步骤+1
 		}
 	}
 
 found:
 	if (steps > 2 && pages_count < 8) {
-		/* move chunk into the head of the linked-list */
+		/* move chunk into the head of the linked-list */ //如果page_count小于8，下面3步将chunk移动到main_chunk的头部
 		chunk->prev->next = chunk->next;
 		chunk->next->prev = chunk->prev;
 		chunk->next = heap->main_chunk->next;
@@ -1047,18 +1134,26 @@ found:
 		chunk->next->prev = chunk;
 	}
 	/* mark run as allocated */
-	chunk->free_pages -= pages_count;
-	zend_mm_bitset_set_range(chunk->free_map, page_num, pages_count);
-	chunk->map[page_num] = ZEND_MM_LRUN(pages_count);
-	if (page_num == chunk->free_tail) {
+	chunk->free_pages -= pages_count;	//将可用pages减小page_count个
+	zend_mm_bitset_set_range(chunk->free_map, page_num, pages_count);	//设置page状态，从page_num开始连续pages_count个page状态更改
+	chunk->map[page_num] = ZEND_MM_LRUN(pages_count);	//设置首个page的的属性为连续申请page_count个page的首个page
+	if (page_num == chunk->free_tail) {	//如果申请的第一个page为末尾连续可用page的首个page则将free_tail移动pages_count个
 		chunk->free_tail = page_num + pages_count;
 	}
-	return ZEND_MM_PAGE_ADDR(chunk, page_num);
+	return ZEND_MM_PAGE_ADDR(chunk, page_num);	//返回chunk里page_num位置page的首地址
 }
 
+/**
+ * @description: 申请large内存
+ * @param zend_mm_heap* heap内存池管理器地址
+ * @param size_t size 申请内存尺寸
+ * @return: void*
+ */
 static zend_always_inline void *zend_mm_alloc_large(zend_mm_heap *heap, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
-	int pages_count = (int)ZEND_MM_SIZE_TO_NUM(size, ZEND_MM_PAGE_SIZE);
+	int pages_count = (int)ZEND_MM_SIZE_TO_NUM(size, ZEND_MM_PAGE_SIZE);	//计算申请内存尺寸所需page的数量
+
+//申请page_count个数的page
 #if ZEND_DEBUG
 	void *ptr = zend_mm_alloc_pages(heap, pages_count, size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 #else
@@ -1066,6 +1161,7 @@ static zend_always_inline void *zend_mm_alloc_large(zend_mm_heap *heap, size_t s
 #endif
 #if ZEND_MM_STAT
 	do {
+		//更新已用内存和已用峰值
 		size_t size = heap->size + pages_count * ZEND_MM_PAGE_SIZE;
 		size_t peak = MAX(heap->peak, size);
 		heap->size = size;
@@ -1075,11 +1171,22 @@ static zend_always_inline void *zend_mm_alloc_large(zend_mm_heap *heap, size_t s
 	return ptr;
 }
 
+/**
+ * @description: 删除chunk内存块
+ * @param zend_mm_heap* heap内存池管理器地址
+ * @param zend_mm_chunk* chunk 内存块首地址
+ * @return: 
+ */
 static zend_always_inline void zend_mm_delete_chunk(zend_mm_heap *heap, zend_mm_chunk *chunk)
 {
+	//摘除chunk
 	chunk->next->prev = chunk->prev;
 	chunk->prev->next = chunk->next;
-	heap->chunks_count--;
+	heap->chunks_count--;	//可用chunk数减一
+
+	/**如果可用chunk数加上缓存池chunk数，小于平均chunk数+1；
+	 * 或者可用chunk数等于最后删除时chunk数，
+	 * 并且最后删除时chunk数大于等于4，则将chunk插入到缓存池头部*/
 	if (heap->chunks_count + heap->cached_chunks_count < heap->avg_chunks_count + 0.1
 	 || (heap->chunks_count == heap->last_chunks_delete_boundary
 	  && heap->last_chunks_delete_count >= 4)) {
@@ -1089,20 +1196,24 @@ static zend_always_inline void zend_mm_delete_chunk(zend_mm_heap *heap, zend_mm_
 		heap->cached_chunks = chunk;
 	} else {
 #if ZEND_MM_STAT || ZEND_MM_LIMIT
-		heap->real_size -= ZEND_MM_CHUNK_SIZE;
+		heap->real_size -= ZEND_MM_CHUNK_SIZE;	//实际申请的内存减去一个chunk的尺寸
 #endif
-		if (!heap->cached_chunks) {
-			if (heap->chunks_count != heap->last_chunks_delete_boundary) {
+		if (!heap->cached_chunks) {	//如果缓存池为空
+			//如果可用chunk数不等于最后删除时chunk数，将可用chunk赋值给最后删除时可用chunk数
+			if (heap->chunks_count != heap->last_chunks_delete_boundary) {	
 				heap->last_chunks_delete_boundary = heap->chunks_count;
 				heap->last_chunks_delete_count = 0;
 			} else {
 				heap->last_chunks_delete_count++;
 			}
 		}
+		
+		//如果缓存池为空，或者chunk的下标大于缓存池中第一个chunk的下标，则直接释放内存
 		if (!heap->cached_chunks || chunk->num > heap->cached_chunks->num) {
 			zend_mm_chunk_free(heap, chunk, ZEND_MM_CHUNK_SIZE);
 		} else {
 //TODO: select the best chunk to delete???
+			//释放缓存池第一个chunk块，并将chunk插入到缓存池头部
 			chunk->next = heap->cached_chunks->next;
 			zend_mm_chunk_free(heap, heap->cached_chunks, ZEND_MM_CHUNK_SIZE);
 			heap->cached_chunks = chunk;

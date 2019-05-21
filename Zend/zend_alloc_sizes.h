@@ -19,16 +19,16 @@
 #ifndef ZEND_ALLOC_SIZES_H
 #define ZEND_ALLOC_SIZES_H
 
-#define ZEND_MM_CHUNK_SIZE (2 * 1024 * 1024)               /* 2 MB  */
-#define ZEND_MM_PAGE_SIZE  (4 * 1024)                      /* 4 KB  */
-#define ZEND_MM_PAGES      (ZEND_MM_CHUNK_SIZE / ZEND_MM_PAGE_SIZE)  /* 512 */
-#define ZEND_MM_FIRST_PAGE (1)
+#define ZEND_MM_CHUNK_SIZE (2 * 1024 * 1024)               /* 2 MB  一个chunk内存的大小，内存池向系统申请内存最小的粒度*/
+#define ZEND_MM_PAGE_SIZE  (4 * 1024)                      /* 4 KB  一个page的大小，一个chunk块可以分割成512个page*/
+#define ZEND_MM_PAGES      (ZEND_MM_CHUNK_SIZE / ZEND_MM_PAGE_SIZE)  /* 512 一个chunk可以分割page的数量*/
+#define ZEND_MM_FIRST_PAGE (1)	//第一个可用page的数组下标
 
-#define ZEND_MM_MIN_SMALL_SIZE		8
-#define ZEND_MM_MAX_SMALL_SIZE      3072
-#define ZEND_MM_MAX_LARGE_SIZE      (ZEND_MM_CHUNK_SIZE - (ZEND_MM_PAGE_SIZE * ZEND_MM_FIRST_PAGE))
+#define ZEND_MM_MIN_SMALL_SIZE		8	//最小small内存，Byte
+#define ZEND_MM_MAX_SMALL_SIZE      3072	//最大small内存
+#define ZEND_MM_MAX_LARGE_SIZE      (ZEND_MM_CHUNK_SIZE - (ZEND_MM_PAGE_SIZE * ZEND_MM_FIRST_PAGE))  //最大large内存 = 1MB-1KB
 
-/* num, size, count, pages */
+/* num, size, count, pages （small内存的规格：标识，大小(Byte)，单次申请数量，占用page数量）*/
 #define ZEND_MM_BINS_INFO(_, x, y) \
 	_( 0,    8,  512, 1, x, y) \
 	_( 1,   16,  256, 1, x, y) \
