@@ -1310,6 +1310,11 @@ static zend_always_inline int zend_mm_small_size_to_bit(int size)
 # define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+/**
+ * @description: 计算size最小的对齐值
+ * @param size_t size 内存值
+ * @return: int 大于等于size最小的对齐数
+ */
 static zend_always_inline int zend_mm_small_size_to_bin(size_t size)
 {
 #if 0
@@ -1338,6 +1343,7 @@ static zend_always_inline int zend_mm_small_size_to_bin(size_t size)
 #endif
 }
 
+//计算small内存最小的对齐尺寸
 #define ZEND_MM_SMALL_SIZE_TO_BIN(size)  zend_mm_small_size_to_bin(size)
 
 static zend_never_inline void *zend_mm_alloc_small_slow(zend_mm_heap *heap, uint32_t bin_num ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
