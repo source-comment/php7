@@ -1221,16 +1221,24 @@ static zend_always_inline void zend_mm_delete_chunk(zend_mm_heap *heap, zend_mm_
 	}
 }
 
+/**
+ * @description: 释放page内存给chunk块
+ * @param zend_mm_heap* heap 内存管理器指针
+ * @param zend_mm_chunk* chunk 内存块首地址
+ * @param uint32_t page_num 内存页下标
+ * @param uint32_t page_count 连续内存页数
+ * @return: void
+ */
 static zend_always_inline void zend_mm_free_pages_ex(zend_mm_heap *heap, zend_mm_chunk *chunk, uint32_t page_num, uint32_t pages_count, int free_chunk)
 {
-	chunk->free_pages += pages_count;
-	zend_mm_bitset_reset_range(chunk->free_map, page_num, pages_count);
-	chunk->map[page_num] = 0;
-	if (chunk->free_tail == page_num + pages_count) {
+	chunk->free_pages += pages_count;	//可用page数增加释放页数
+	zend_mm_bitset_reset_range(chunk->free_map, page_num, pages_count);	//重置page首页和连续页状态
+	chunk->map[page_num] = 0;	//首页设为未使用
+	if (chunk->free_tail == page_num + pages_count) {	//如果尾部连续内存页首页未变动过，则还原成page_num
 		/* this setting may be not accurate */
 		chunk->free_tail = page_num;
 	}
-	if (free_chunk && chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE) {
+	if (free_chunk && chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE) {	//如果可用page页数=511，直接释放chunk内存块给系统
 		zend_mm_delete_chunk(heap, chunk);
 	}
 }
