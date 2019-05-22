@@ -26,7 +26,7 @@
 
 #define ZEND_MM_MIN_SMALL_SIZE		8	//最小small内存，Byte
 #define ZEND_MM_MAX_SMALL_SIZE      3072	//最大small内存
-#define ZEND_MM_MAX_LARGE_SIZE      (ZEND_MM_CHUNK_SIZE - (ZEND_MM_PAGE_SIZE * ZEND_MM_FIRST_PAGE))  //最大large内存 = 1MB-1KB
+#define ZEND_MM_MAX_LARGE_SIZE      (ZEND_MM_CHUNK_SIZE - (ZEND_MM_PAGE_SIZE * ZEND_MM_FIRST_PAGE))  //最大large内存 = 2MB-1KB
 
 /* num, size, count, pages （small内存的规格：标识，大小(Byte)，单次申请数量，占用page数量）*/
 #define ZEND_MM_BINS_INFO(_, x, y) \
