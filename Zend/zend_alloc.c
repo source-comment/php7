@@ -580,6 +580,7 @@ static zend_always_inline int zend_mm_bitset_nts(zend_mm_bitset bitset)
 #endif
 }
 
+//查找bit位=1
 static zend_always_inline int zend_mm_bitset_find_zero(zend_mm_bitset *bitset, int size)
 {
 	int i = 0;
@@ -594,6 +595,7 @@ static zend_always_inline int zend_mm_bitset_find_zero(zend_mm_bitset *bitset, i
 	return -1;
 }
 
+//查bit位==1
 static zend_always_inline int zend_mm_bitset_find_one(zend_mm_bitset *bitset, int size)
 {
 	int i = 0;
@@ -608,6 +610,7 @@ static zend_always_inline int zend_mm_bitset_find_one(zend_mm_bitset *bitset, in
 	return -1;
 }
 
+//设置并查找bit=0
 static zend_always_inline int zend_mm_bitset_find_zero_and_set(zend_mm_bitset *bitset, int size)
 {
 	int i = 0;
@@ -624,21 +627,25 @@ static zend_always_inline int zend_mm_bitset_find_zero_and_set(zend_mm_bitset *b
 	return -1;
 }
 
+//bit未是否设置
 static zend_always_inline int zend_mm_bitset_is_set(zend_mm_bitset *bitset, int bit)
 {
 	return (bitset[bit / ZEND_MM_BITSET_LEN] & (Z_L(1) << (bit & (ZEND_MM_BITSET_LEN-1)))) != 0;
 }
 
+//设置bit位
 static zend_always_inline void zend_mm_bitset_set_bit(zend_mm_bitset *bitset, int bit)
 {
 	bitset[bit / ZEND_MM_BITSET_LEN] |= (Z_L(1) << (bit & (ZEND_MM_BITSET_LEN-1)));
 }
 
+//重置bit位
 static zend_always_inline void zend_mm_bitset_reset_bit(zend_mm_bitset *bitset, int bit)
 {
 	bitset[bit / ZEND_MM_BITSET_LEN] &= ~(Z_L(1) << (bit & (ZEND_MM_BITSET_LEN-1)));
 }
 
+//设置start-len范围bit位
 static zend_always_inline void zend_mm_bitset_set_range(zend_mm_bitset *bitset, int start, int len)
 {
 	if (len == 1) {
@@ -671,6 +678,7 @@ static zend_always_inline void zend_mm_bitset_set_range(zend_mm_bitset *bitset, 
 	}
 }
 
+//重置start+len的bit位
 static zend_always_inline void zend_mm_bitset_reset_range(zend_mm_bitset *bitset, int start, int len)
 {
 	if (len == 1) {
@@ -703,6 +711,7 @@ static zend_always_inline void zend_mm_bitset_reset_range(zend_mm_bitset *bitset
 	}
 }
 
+//判断start+len范围的bit位是否可用
 static zend_always_inline int zend_mm_bitset_is_free_range(zend_mm_bitset *bitset, int start, int len)
 {
 	if (len == 1) {
