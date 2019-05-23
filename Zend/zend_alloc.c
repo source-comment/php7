@@ -2176,29 +2176,30 @@ ZEND_API size_t zend_mm_gc(zend_mm_heap *heap)
 	}
 #endif
 
+	//先清理small规格的内存
 	for (i = 0; i < ZEND_MM_BINS; i++) {
 		has_free_pages = 0;
 		p = heap->free_slot[i];
 		while (p != NULL) {
-			chunk = (zend_mm_chunk*)ZEND_MM_ALIGNED_BASE(p, ZEND_MM_CHUNK_SIZE);
-			ZEND_MM_CHECK(chunk->heap == heap, "zend_mm_heap corrupted");
-			page_offset = ZEND_MM_ALIGNED_OFFSET(p, ZEND_MM_CHUNK_SIZE);
+			chunk = (zend_mm_chunk*)ZEND_MM_ALIGNED_BASE(p, ZEND_MM_CHUNK_SIZE); //所属chunk首地址
+			ZEND_MM_CHECK(chunk->heap == heap, "zend_mm_heap corrupted");	//检测内存
+			page_offset = ZEND_MM_ALIGNED_OFFSET(p, ZEND_MM_CHUNK_SIZE);	//page偏移量
 			ZEND_ASSERT(page_offset != 0);
-			page_num = (int)(page_offset / ZEND_MM_PAGE_SIZE);
-			info = chunk->map[page_num];
-			ZEND_ASSERT(info & ZEND_MM_IS_SRUN);
-			if (info & ZEND_MM_IS_LRUN) {
-				page_num -= ZEND_MM_NRUN_OFFSET(info);
-				info = chunk->map[page_num];
+			page_num = (int)(page_offset / ZEND_MM_PAGE_SIZE);	//计算所属page的位置
+			info = chunk->map[page_num];	//page信息
+			ZEND_ASSERT(info & ZEND_MM_IS_SRUN); //断言page标记的类型
+			if (info & ZEND_MM_IS_LRUN) {	//如果page用于large规格的内存
+				page_num -= ZEND_MM_NRUN_OFFSET(info);	//计算page
+				info = chunk->map[page_num];	//获取page状态信息
 				ZEND_ASSERT(info & ZEND_MM_IS_SRUN);
 				ZEND_ASSERT(!(info & ZEND_MM_IS_LRUN));
 			}
 			ZEND_ASSERT(ZEND_MM_SRUN_BIN_NUM(info) == i);
 			free_counter = ZEND_MM_SRUN_FREE_COUNTER(info) + 1;
-			if (free_counter == bin_elements[i]) {
+			if (free_counter == bin_elements[i]) { //如果可用small的元素数量+1与设定相等
 				has_free_pages = 1;
 			}
-			chunk->map[page_num] = ZEND_MM_SRUN_EX(i, free_counter);
+			chunk->map[page_num] = ZEND_MM_SRUN_EX(i, free_counter);	//设置page_num的状态
 			p = p->next_free_slot;
 		}
 
@@ -2209,21 +2210,21 @@ ZEND_API size_t zend_mm_gc(zend_mm_heap *heap)
 		q = &heap->free_slot[i];
 		p = *q;
 		while (p != NULL) {
-			chunk = (zend_mm_chunk*)ZEND_MM_ALIGNED_BASE(p, ZEND_MM_CHUNK_SIZE);
+			chunk = (zend_mm_chunk*)ZEND_MM_ALIGNED_BASE(p, ZEND_MM_CHUNK_SIZE);	//所属chunk首地址
 			ZEND_MM_CHECK(chunk->heap == heap, "zend_mm_heap corrupted");
 			page_offset = ZEND_MM_ALIGNED_OFFSET(p, ZEND_MM_CHUNK_SIZE);
 			ZEND_ASSERT(page_offset != 0);
-			page_num = (int)(page_offset / ZEND_MM_PAGE_SIZE);
+			page_num = (int)(page_offset / ZEND_MM_PAGE_SIZE);	//计算page所在位置
 			info = chunk->map[page_num];
 			ZEND_ASSERT(info & ZEND_MM_IS_SRUN);
-			if (info & ZEND_MM_IS_LRUN) {
+			if (info & ZEND_MM_IS_LRUN) {	//如果page用于大内存
 				page_num -= ZEND_MM_NRUN_OFFSET(info);
 				info = chunk->map[page_num];
 				ZEND_ASSERT(info & ZEND_MM_IS_SRUN);
 				ZEND_ASSERT(!(info & ZEND_MM_IS_LRUN));
 			}
 			ZEND_ASSERT(ZEND_MM_SRUN_BIN_NUM(info) == i);
-			if (ZEND_MM_SRUN_FREE_COUNTER(info) == bin_elements[i]) {
+			if (ZEND_MM_SRUN_FREE_COUNTER(info) == bin_elements[i]) { //如果可用small的元素数量与设定相等
 				/* remove from cache */
 				p = p->next_free_slot;
 				*q = p;
@@ -2238,39 +2239,39 @@ ZEND_API size_t zend_mm_gc(zend_mm_heap *heap)
 	do {
 		i = ZEND_MM_FIRST_PAGE;
 		while (i < chunk->free_tail) {
-			if (zend_mm_bitset_is_set(chunk->free_map, i)) {
+			if (zend_mm_bitset_is_set(chunk->free_map, i)) {	//chunk已用
 				info = chunk->map[i];
-				if (info & ZEND_MM_IS_SRUN) {
-					int bin_num = ZEND_MM_SRUN_BIN_NUM(info);
-					int pages_count = bin_pages[bin_num];
+				if (info & ZEND_MM_IS_SRUN) {	//如果page用于small内存
+					int bin_num = ZEND_MM_SRUN_BIN_NUM(info);	//small编号
+					int pages_count = bin_pages[bin_num];	//small规格所需page数
 
-					if (ZEND_MM_SRUN_FREE_COUNTER(info) == bin_elements[bin_num]) {
-						/* all elemens are free */
+					if (ZEND_MM_SRUN_FREE_COUNTER(info) == bin_elements[bin_num]) {	//如果可用small的元素数量与设定相等
+						/* all elemens are free 释放此chunk中第i到i+pages_count的连续的page*/
 						zend_mm_free_pages_ex(heap, chunk, i, pages_count, 0);
-						collected += pages_count;
+						collected += pages_count;	//增加释放page计数数
 					} else {
 						/* reset counter */
-						chunk->map[i] = ZEND_MM_SRUN(bin_num);
+						chunk->map[i] = ZEND_MM_SRUN(bin_num);	//重置page的状态
 					}
 					i += bin_pages[bin_num];
 				} else /* if (info & ZEND_MM_IS_LRUN) */ {
-					i += ZEND_MM_LRUN_PAGES(info);
+					i += ZEND_MM_LRUN_PAGES(info);	//如果是page用于large内存，则跳过相应的page数
 				}
 			} else {
 				i++;
 			}
 		}
-		if (chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE) {
+		if (chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE) {	//如果chunk可用page数为511，则释放此chunk
 			zend_mm_chunk *next_chunk = chunk->next;
 
-			zend_mm_delete_chunk(heap, chunk);
+			zend_mm_delete_chunk(heap, chunk);	//删除chunk
 			chunk = next_chunk;
 		} else {
 			chunk = chunk->next;
 		}
 	} while (chunk != heap->main_chunk);
 
-	return collected * ZEND_MM_PAGE_SIZE;
+	return collected * ZEND_MM_PAGE_SIZE; //回收的内存大小
 }
 
 #if ZEND_DEBUG
@@ -2282,7 +2283,7 @@ static zend_long zend_mm_find_leaks_small(zend_mm_chunk *p, uint32_t i, uint32_t
 {
     int empty = 1;
 	zend_long count = 0;
-	int bin_num = ZEND_MM_SRUN_BIN_NUM(p->map[i]);
+	int bin_num = ZEND_MM_SRUN_BIN_NUM(p->map[i]);	//small规格编号
 	zend_mm_debug_info *dbg = (zend_mm_debug_info*)((char*)p + ZEND_MM_PAGE_SIZE * i + bin_data_size[bin_num] * (j + 1) - ZEND_MM_ALIGNED_SIZE(sizeof(zend_mm_debug_info)));
 
 	while (j < bin_elements[bin_num]) {
@@ -2463,6 +2464,11 @@ static void zend_mm_check_leaks(zend_mm_heap *heap)
 }
 #endif
 
+/**
+ * @description: 关闭内存管理器
+ * @param zend_mm_heap* heap 内存管理器地址
+ * @return: void
+ */
 void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 {
 	zend_mm_chunk *p;
@@ -2474,7 +2480,7 @@ void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 			if (ZEND_DEBUG && heap->use_custom_heap == ZEND_MM_CUSTOM_HEAP_DEBUG) {
 				heap->custom_heap.debug._free(heap ZEND_FILE_LINE_CC ZEND_FILE_LINE_EMPTY_CC);
 			} else {
-				heap->custom_heap.std._free(heap);
+				heap->custom_heap.std._free(heap);	//释放heap
 			}
 		}
 		return;
@@ -2487,7 +2493,7 @@ void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 	}
 #endif
 
-	/* free huge blocks */
+	/* free huge blocks 释放huge内存*/
 	list = heap->huge_list;
 	heap->huge_list = NULL;
 	while (list) {
@@ -2496,7 +2502,7 @@ void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 		zend_mm_chunk_free(heap, q->ptr, q->size);
 	}
 
-	/* move all chunks except of the first one into the cache */
+	/* move all chunks except of the first one into the cache 释放chunk内存(第二个到最后一个，移到chunk缓存池)*/
 	p = heap->main_chunk->next;
 	while (p != heap->main_chunk) {
 		zend_mm_chunk *q = p->next;
@@ -2508,18 +2514,18 @@ void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 	}
 
 	if (full) {
-		/* free all cached chunks */
+		/* free all cached chunks 释放所有缓存池的chunk*/
 		while (heap->cached_chunks) {
 			p = heap->cached_chunks;
 			heap->cached_chunks = p->next;
 			zend_mm_chunk_free(heap, p, ZEND_MM_CHUNK_SIZE);
 		}
-		/* free the first chunk */
+		/* free the first chunk 释放第一个 */
 		zend_mm_chunk_free(heap, heap->main_chunk, ZEND_MM_CHUNK_SIZE);
 	} else {
 		zend_mm_heap old_heap;
 
-		/* free some cached chunks to keep average count */
+		/* free some cached chunks to keep average count 释放一部分缓存中的chunk（缓存池数量+0.9大于平均chunk指数）*/
 		heap->avg_chunks_count = (heap->avg_chunks_count + (double)heap->peak_chunks_count) / 2.0;
 		while ((double)heap->cached_chunks_count + 0.9 > heap->avg_chunks_count &&
 		       heap->cached_chunks) {
@@ -2569,26 +2575,59 @@ void zend_mm_shutdown(zend_mm_heap *heap, int full, int silent)
 /* PUBLIC API */
 /**************/
 
+/**
+ * @description: 申请内存
+ * @param zend_mm_heap* heap内存管理器地址
+ * @param size_t size 申请内存大小
+ * @return: void* 内存指针
+ */
 ZEND_API void* ZEND_FASTCALL _zend_mm_alloc(zend_mm_heap *heap, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return zend_mm_alloc_heap(heap, size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 释放内存
+ * @param zend_mm_heap* heap内存管理器地址
+ * @param void* ptr 要释放的内存指针
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL _zend_mm_free(zend_mm_heap *heap, void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	zend_mm_free_heap(heap, ptr ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 修改内存大小
+ * @param zend_mm_heap* heap内存管理器地址
+ * @param void* ptr 内存指针
+ * @param size_t size 修改后的内存大小
+ * @return: void
+ */
 void* ZEND_FASTCALL _zend_mm_realloc(zend_mm_heap *heap, void *ptr, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return zend_mm_realloc_heap(heap, ptr, size, size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 修改内存大小
+ * @param zend_mm_heap* heap内存管理器地址
+ * @param void* ptr 内存指针
+ * @param size_t size 修改后的内存大小
+ * @param size_t copy_size 保留原数据大小
+ * @return: void
+ */
 void* ZEND_FASTCALL _zend_mm_realloc2(zend_mm_heap *heap, void *ptr, size_t size, size_t copy_size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return zend_mm_realloc_heap(heap, ptr, size, copy_size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 内存所属块的大小
+ * @param zend_mm_heap* heap内存管理器地址
+ * @param void* ptr 内存指针
+ * @return: size_t
+ */
 ZEND_API size_t ZEND_FASTCALL _zend_mm_block_size(zend_mm_heap *heap, void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return zend_mm_size(heap, ptr ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
@@ -2597,19 +2636,20 @@ ZEND_API size_t ZEND_FASTCALL _zend_mm_block_size(zend_mm_heap *heap, void *ptr 
 /**********************/
 /* Allocation Manager */
 /**********************/
-
+//全局内存管理器结构体
 typedef struct _zend_alloc_globals {
 	zend_mm_heap *mm_heap;
 } zend_alloc_globals;
 
 #ifdef ZTS
 static int alloc_globals_id;
-# define AG(v) ZEND_TSRMG(alloc_globals_id, zend_alloc_globals *, v)
+# define AG(v) ZEND_TSRMG(alloc_globals_id, zend_alloc_globals *, v)	//线程安全
 #else
-# define AG(v) (alloc_globals.v)
-static zend_alloc_globals alloc_globals;
+# define AG(v) (alloc_globals.v) //非线程安全
+static zend_alloc_globals alloc_globals; 
 #endif
 
+//是否使用zend内存管理器
 ZEND_API int is_zend_mm(void)
 {
 #if ZEND_MM_CUSTOM
@@ -2655,6 +2695,11 @@ ZEND_API int is_zend_mm(void)
 
 ZEND_MM_BINS_INFO(_ZEND_BIN_ALLOCATOR, x, y)
 
+/**
+ * @description: 申请large内存
+ * @param size_t size 内存大小
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _emalloc_large(size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 
@@ -2662,6 +2707,11 @@ ZEND_API void* ZEND_FASTCALL _emalloc_large(size_t size ZEND_FILE_LINE_DC ZEND_F
 	return zend_mm_alloc_large(AG(mm_heap), size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 申请huge内存
+ * @param size_t size 内存大小
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _emalloc_huge(size_t size)
 {
 
@@ -2697,6 +2747,12 @@ ZEND_API void* ZEND_FASTCALL _emalloc_huge(size_t size)
 
 ZEND_MM_BINS_INFO(_ZEND_BIN_FREE, x, y)
 
+/**
+ * @description: 释放large内存
+ * @param void* ptr 内存地址
+ * @param size_t size 内存大小
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL _efree_large(void *ptr, size_t size)
 {
 
@@ -2714,6 +2770,12 @@ ZEND_API void ZEND_FASTCALL _efree_large(void *ptr, size_t size)
 	}
 }
 
+/**
+ * @description: 释放huge内存
+ * @param void* ptr 内存地址
+ * @param size_t size 内存大小
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL _efree_huge(void *ptr, size_t size)
 {
 
@@ -2722,6 +2784,11 @@ ZEND_API void ZEND_FASTCALL _efree_huge(void *ptr, size_t size)
 }
 #endif
 
+/**
+ * @description: 向内存管理器申请内存
+ * @param size_t size 申请内存大小
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _emalloc(size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 
@@ -2737,6 +2804,11 @@ ZEND_API void* ZEND_FASTCALL _emalloc(size_t size ZEND_FILE_LINE_DC ZEND_FILE_LI
 	return zend_mm_alloc_heap(AG(mm_heap), size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 释放内存到内存管理器
+ * @param void* 内存地址
+ * @return: void
+ */
 ZEND_API void ZEND_FASTCALL _efree(void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 
@@ -2753,6 +2825,12 @@ ZEND_API void ZEND_FASTCALL _efree(void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_OR
 	zend_mm_free_heap(AG(mm_heap), ptr ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 改变内存大小
+ * @param void* 内存地址
+ * @param size_t size 目标大小
+ * @return: void*
+ */
 ZEND_API void* ZEND_FASTCALL _erealloc(void *ptr, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 
@@ -2766,6 +2844,13 @@ ZEND_API void* ZEND_FASTCALL _erealloc(void *ptr, size_t size ZEND_FILE_LINE_DC 
 	return zend_mm_realloc_heap(AG(mm_heap), ptr, size, size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 改变内存大小
+ * @param void* 内存地址
+ * @param size_t size 目标大小
+ * @param size_t copy_size 保留原内存数据大小
+ * @return: void*
+ */
 ZEND_API void* ZEND_FASTCALL _erealloc2(void *ptr, size_t size, size_t copy_size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 
@@ -2779,6 +2864,11 @@ ZEND_API void* ZEND_FASTCALL _erealloc2(void *ptr, size_t size, size_t copy_size
 	return zend_mm_realloc_heap(AG(mm_heap), ptr, size, copy_size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 返回内存所属块大小
+ * @param void* ptr 内存地址
+ * @return: size_t
+ */
 ZEND_API size_t ZEND_FASTCALL _zend_mem_block_size(void *ptr ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	if (UNEXPECTED(AG(mm_heap)->use_custom_heap)) {
@@ -2787,27 +2877,47 @@ ZEND_API size_t ZEND_FASTCALL _zend_mem_block_size(void *ptr ZEND_FILE_LINE_DC Z
 	return zend_mm_size(AG(mm_heap), ptr ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 }
 
+/**
+ * @description: 安全向内存管理器申请内存
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _safe_emalloc(size_t nmemb, size_t size, size_t offset ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return emalloc_rel(zend_safe_address_guarded(nmemb, size, offset));
 }
 
+/**
+ * @description: 安全向内存管理器申请内存
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _safe_malloc(size_t nmemb, size_t size, size_t offset)
 {
 	return pemalloc(zend_safe_address_guarded(nmemb, size, offset), 1);
 }
 
+/**
+ * @description: 安全改变内存大小
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _safe_erealloc(void *ptr, size_t nmemb, size_t size, size_t offset ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	return erealloc_rel(ptr, zend_safe_address_guarded(nmemb, size, offset));
 }
 
+/**
+ * @description: 安全改变内存大小
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _safe_realloc(void *ptr, size_t nmemb, size_t size, size_t offset)
 {
 	return perealloc(ptr, zend_safe_address_guarded(nmemb, size, offset), 1);
 }
 
 
+/**
+ * @description: 申请内存并初始化
+ * @return: void* 内存地址
+ */
 ZEND_API void* ZEND_FASTCALL _ecalloc(size_t nmemb, size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	void *p;
@@ -2817,6 +2927,11 @@ ZEND_API void* ZEND_FASTCALL _ecalloc(size_t nmemb, size_t size ZEND_FILE_LINE_D
 	return p;
 }
 
+/**
+ * @description: 复制一个字符串
+ * @param char* s 要复制的字符串
+ * @return: char* 新字符串
+ */
 ZEND_API char* ZEND_FASTCALL _estrdup(const char *s ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	size_t length;
@@ -2831,6 +2946,12 @@ ZEND_API char* ZEND_FASTCALL _estrdup(const char *s ZEND_FILE_LINE_DC ZEND_FILE_
 	return p;
 }
 
+/**
+ * @description: 复制一个字符串的length个字节（使用内存池）
+ * @param char* s 要复制的字符串
+ * @param size_t lenght 复制长度
+ * @return: char* 新字符串
+ */
 ZEND_API char* ZEND_FASTCALL _estrndup(const char *s, size_t length ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	char *p;
@@ -2845,6 +2966,12 @@ ZEND_API char* ZEND_FASTCALL _estrndup(const char *s, size_t length ZEND_FILE_LI
 }
 
 
+/**
+ * @description: 复制一个字符串的length个字节 （使用系统内存）
+ * @param char* s 要复制的字符串
+ * @param size_t lenght 复制长度
+ * @return: char* 新字符串
+ */
 ZEND_API char* ZEND_FASTCALL zend_strndup(const char *s, size_t length)
 {
 	char *p;
@@ -2863,7 +2990,11 @@ ZEND_API char* ZEND_FASTCALL zend_strndup(const char *s, size_t length)
 	return p;
 }
 
-
+/**
+ * @description: 设置申请内存上限
+ * @param size_t memory_limit 最大可申请内存
+ * @return: int
+ */
 ZEND_API int zend_set_memory_limit(size_t memory_limit)
 {
 #if ZEND_MM_LIMIT
@@ -2872,6 +3003,11 @@ ZEND_API int zend_set_memory_limit(size_t memory_limit)
 	return SUCCESS;
 }
 
+/**
+ * @description: 获取内存大小
+ * @param int real_usage 1 = 实际申请内存，0已用内存
+ * @return: size_t
+ */
 ZEND_API size_t zend_memory_usage(int real_usage)
 {
 #if ZEND_MM_STAT
@@ -2885,6 +3021,11 @@ ZEND_API size_t zend_memory_usage(int real_usage)
 	return 0;
 }
 
+/**
+ * @description: 获取内存峰值
+ * @param int real_usage 1 = 实际申请峰值，0已用峰值
+ * @return: size_t
+ */
 ZEND_API size_t zend_memory_peak_usage(int real_usage)
 {
 #if ZEND_MM_STAT
@@ -2897,11 +3038,13 @@ ZEND_API size_t zend_memory_peak_usage(int real_usage)
 	return 0;
 }
 
+//关闭内存管理器
 ZEND_API void shutdown_memory_manager(int silent, int full_shutdown)
 {
 	zend_mm_shutdown(AG(mm_heap), full_shutdown, silent);
 }
 
+//全局内存构造函数
 static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 {
 	char *tmp;
@@ -2909,12 +3052,12 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 	tmp = getenv("USE_ZEND_ALLOC");
 
 	if (tmp && !zend_atoi(tmp, 0)) {
-		alloc_globals->mm_heap = malloc(sizeof(zend_mm_heap));
-		memset(alloc_globals->mm_heap, 0, sizeof(zend_mm_heap));
-		alloc_globals->mm_heap->use_custom_heap = ZEND_MM_CUSTOM_HEAP_STD;
-		alloc_globals->mm_heap->custom_heap.std._malloc = __zend_malloc;
-		alloc_globals->mm_heap->custom_heap.std._free = free;
-		alloc_globals->mm_heap->custom_heap.std._realloc = __zend_realloc;
+		alloc_globals->mm_heap = malloc(sizeof(zend_mm_heap));	//申请管理器内存
+		memset(alloc_globals->mm_heap, 0, sizeof(zend_mm_heap));	//初始化管理器内存
+		alloc_globals->mm_heap->use_custom_heap = ZEND_MM_CUSTOM_HEAP_STD;	//使用自定义内存管理器
+		alloc_globals->mm_heap->custom_heap.std._malloc = __zend_malloc;	//申请内存函数
+		alloc_globals->mm_heap->custom_heap.std._free = free;	//释放内存函数
+		alloc_globals->mm_heap->custom_heap.std._realloc = __zend_realloc; 	//更改内存大小函数
 		return;
 	}
 #endif
@@ -2923,7 +3066,7 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 		zend_mm_use_huge_pages = 1;
 	}
 	ZEND_TSRMLS_CACHE_UPDATE();
-	alloc_globals->mm_heap = zend_mm_init();
+	alloc_globals->mm_heap = zend_mm_init();//初始化
 }
 
 #ifdef ZTS
@@ -3127,6 +3270,11 @@ static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void)
 	exit(1);
 }
 
+/**
+ * @description: 向系统申请内存
+ * @param size_t size 申请大小
+ * @return: void* 内存地址
+ */
 ZEND_API void * __zend_malloc(size_t len)
 {
 	void *tmp = malloc(len);
@@ -3136,6 +3284,12 @@ ZEND_API void * __zend_malloc(size_t len)
 	zend_out_of_memory();
 }
 
+/**
+ * @description: 向系统申请并初始化内存
+ * @param size_t size 每个元素大小
+ * @param size_t len 元素数量
+ * @return: void* 内存地址
+ */
 ZEND_API void * __zend_calloc(size_t nmemb, size_t len)
 {
 	void *tmp = _safe_malloc(nmemb, len, 0);
@@ -3143,6 +3297,11 @@ ZEND_API void * __zend_calloc(size_t nmemb, size_t len)
 	return tmp;
 }
 
+/**
+ * @description: 向系统申请更改内存大小
+ * @param size_t size 内存大小
+、 * @return: void* 内存地址
+ */
 ZEND_API void * __zend_realloc(void *p, size_t len)
 {
 	p = realloc(p, len);
