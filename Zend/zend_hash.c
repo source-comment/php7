@@ -721,7 +721,7 @@ static zend_always_inline zval *_zend_hash_add_or_update_i(HashTable *ht, zend_s
 		CHECK_INIT(ht, 0);
 		goto add_to_hash;
 	} else if (ht->u.flags & HASH_FLAG_PACKED) {
-		//如果是压缩数组哈希表，则调用压缩数组专用处理函数
+		//如果是数值索引哈希表，则转换成枚举哈希表
 		zend_hash_packed_to_hash(ht);
 	} else if ((flag & HASH_ADD_NEW) == 0) {
 		p = zend_hash_find_bucket(ht, key);	//根据key找到哈希表的存储数据
