@@ -24,6 +24,12 @@
 
 #define ZEND_STACK_ELEMENT(stack, n) ((void *)((char *) (stack)->elements + (stack)->size * (n)))
 
+/**
+ * @description: 栈初始化
+ * @param zend_stack* stack栈指针
+ * @param int size 栈大小
+ * @return: int
+ */
 ZEND_API int zend_stack_init(zend_stack *stack, int size)
 {
 	stack->size = size;
@@ -33,6 +39,12 @@ ZEND_API int zend_stack_init(zend_stack *stack, int size)
 	return SUCCESS;
 }
 
+/**
+ * @description: 入栈
+ * @param zend_stack* stack栈指针
+ * @param void* element 要入栈的元素指针
+ * @return: int 栈大小
+ */
 ZEND_API int zend_stack_push(zend_stack *stack, const void *element)
 {
 	/* We need to allocate more memory */
@@ -40,11 +52,15 @@ ZEND_API int zend_stack_push(zend_stack *stack, const void *element)
 		stack->max += STACK_BLOCK_SIZE;
 		stack->elements = safe_erealloc(stack->elements, stack->size, stack->max, 0);
 	}
-	memcpy(ZEND_STACK_ELEMENT(stack, stack->top), element, stack->size);
+	memcpy(ZEND_STACK_ELEMENT(stack, stack->top), element, stack->size);	//将元素指针入栈（加入栈空间尾部）
 	return stack->top++;
 }
 
-
+/**
+ * @description: 获取栈顶元素
+ * @param zend_stack* stack栈指针
+ * @return: void* 返回栈顶的指针
+ */
 ZEND_API void *zend_stack_top(const zend_stack *stack)
 {
 	if (stack->top > 0) {
@@ -54,14 +70,22 @@ ZEND_API void *zend_stack_top(const zend_stack *stack)
 	}
 }
 
-
+/**
+ * @description: 减小栈
+ * @param zend_stack* stack栈指针
+ * @return: int 成功
+ */
 ZEND_API int zend_stack_del_top(zend_stack *stack)
 {
 	--stack->top;
 	return SUCCESS;
 }
 
-
+/**
+ * @description: 获取整形的栈顶元素
+ * @param zend_stack* stack栈指针
+ * @return: int
+ */
 ZEND_API int zend_stack_int_top(const zend_stack *stack)
 {
 	int *e = zend_stack_top(stack);
@@ -72,13 +96,21 @@ ZEND_API int zend_stack_int_top(const zend_stack *stack)
 	}
 }
 
-
+/**
+ * @description: 是否空栈
+ * @param zend_stack* stack栈指针
+ * @return: int 1空，0非空
+ */
 ZEND_API int zend_stack_is_empty(const zend_stack *stack)
 {
 	return stack->top == 0;
 }
 
-
+/**
+ * @description: 销毁栈
+ * @param zend_stack* stack栈指针
+ * @return: int 0成功
+ */
 ZEND_API int zend_stack_destroy(zend_stack *stack)
 {
 	if (stack->elements) {
@@ -89,13 +121,21 @@ ZEND_API int zend_stack_destroy(zend_stack *stack)
 	return SUCCESS;
 }
 
-
+/**
+ * @description: 返回栈首地址
+ * @param zend_stack* stack栈指针
+ * @return: void* 
+ */
 ZEND_API void *zend_stack_base(const zend_stack *stack)
 {
 	return stack->elements;
 }
 
-
+/**
+ * @description: 返回栈大小
+ * @param zend_stack* stack栈指针
+ * @return: int 栈内元素数量
+ */
 ZEND_API int zend_stack_count(const zend_stack *stack)
 {
 	return stack->top;
@@ -147,6 +187,13 @@ ZEND_API void zend_stack_apply_with_argument(zend_stack *stack, int type, int (*
 	}
 }
 
+/**
+ * @description: 清理栈
+ * @param zend_stack* stack栈指针
+ * @param void *func 清理函数
+ * @param zend_bool free_elements 是否释放内存
+ * @return: void
+ */
 ZEND_API void zend_stack_clean(zend_stack *stack, void (*func)(void *), zend_bool free_elements)
 {
 	int i;

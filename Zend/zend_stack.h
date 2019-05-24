@@ -22,9 +22,10 @@
 #ifndef ZEND_STACK_H
 #define ZEND_STACK_H
 
+//栈结构体
 typedef struct _zend_stack {
-	int size, top, max;
-	void *elements;
+	int size, top, max; //size=每个元素大小； top=栈顶；max=栈的大小
+	void *elements; //栈内元素指针
 } zend_stack;
 
 
