@@ -30,14 +30,15 @@ BEGIN_EXTERN_C()
 typedef void (*rsrc_dtor_func_t)(zend_resource *res);
 #define ZEND_RSRC_DTOR_FUNC(name) void name(zend_resource *res)
 
+//资源列表析构函数结构
 typedef struct _zend_rsrc_list_dtors_entry {
-	rsrc_dtor_func_t list_dtor_ex;
-	rsrc_dtor_func_t plist_dtor_ex;
+	rsrc_dtor_func_t list_dtor_ex;   //普通列表析构函数
+	rsrc_dtor_func_t plist_dtor_ex;  //持久化列表修购函数
 
-	const char *type_name;
+	const char *type_name;  //资源类型名
 
-	int module_number;
-	int resource_id;
+	int module_number;   //模块ID
+	int resource_id;  //资源ID(哈希表索引)
 } zend_rsrc_list_dtors_entry;
 
 
