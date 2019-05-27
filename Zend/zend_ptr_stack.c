@@ -25,6 +25,12 @@
 # include <stdarg.h>
 #endif
 
+/**
+ * @description: 指针栈初始化
+ * @param zend_ptr_stack* stack 栈首地址
+ * @param zend_bool persistent 是否持久化
+ * @return: 
+ */
 ZEND_API void zend_ptr_stack_init_ex(zend_ptr_stack *stack, zend_bool persistent)
 {
 	stack->top_element = stack->elements = NULL;
@@ -32,12 +38,23 @@ ZEND_API void zend_ptr_stack_init_ex(zend_ptr_stack *stack, zend_bool persistent
 	stack->persistent = persistent;
 }
 
+/**
+ * @description: 指针栈初始化
+ * @param zend_ptr_stack* stack 栈首地址
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_init(zend_ptr_stack *stack)
 {
 	zend_ptr_stack_init_ex(stack, 0);
 }
 
-
+/**
+ * @description: 将多个元素入栈
+ * @param zend_ptr_stack* stack 栈首地址
+ * param int count 元素数量
+ * @param ... 元素列表
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_n_push(zend_ptr_stack *stack, int count, ...)
 {
 	va_list ptr;
@@ -55,7 +72,12 @@ ZEND_API void zend_ptr_stack_n_push(zend_ptr_stack *stack, int count, ...)
 	va_end(ptr);
 }
 
-
+/**
+ * @description: 将多个元素出栈
+ * @param zend_ptr_stack* stack 栈首地址
+ * param int count 元素数量
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_n_pop(zend_ptr_stack *stack, int count, ...)
 {
 	va_list ptr;
@@ -71,8 +93,11 @@ ZEND_API void zend_ptr_stack_n_pop(zend_ptr_stack *stack, int count, ...)
 	va_end(ptr);
 }
 
-
-
+/**
+ * @description: 销毁指针栈
+ * @param zend_ptr_stack* stack 栈首地址
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_destroy(zend_ptr_stack *stack)
 {
 	if (stack->elements) {
@@ -80,7 +105,12 @@ ZEND_API void zend_ptr_stack_destroy(zend_ptr_stack *stack)
 	}
 }
 
-
+/**
+ * @description: 对栈内元素执行函数
+ * @param zend_ptr_stack* stack 栈首地址
+ * @param void(*func) 函数
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_apply(zend_ptr_stack *stack, void (*func)(void *))
 {
 	int i = stack->top;
@@ -90,10 +120,16 @@ ZEND_API void zend_ptr_stack_apply(zend_ptr_stack *stack, void (*func)(void *))
 	}
 }
 
-
+/**
+ * @description: 对栈内元素执行函数，并清理
+ * @param zend_ptr_stack* stack 栈首地址
+ * @param void(*func) 函数
+ * @param zend_bool free_elements 是否释放元素内存
+ * @return: void
+ */
 ZEND_API void zend_ptr_stack_clean(zend_ptr_stack *stack, void (*func)(void *), zend_bool free_elements)
 {
-	zend_ptr_stack_apply(stack, func);
+	zend_ptr_stack_apply(stack, func);	//遍历栈并逐个对元素执行函数
 	if (free_elements) {
 		int i = stack->top;
 
@@ -105,7 +141,11 @@ ZEND_API void zend_ptr_stack_clean(zend_ptr_stack *stack, void (*func)(void *), 
 	stack->top_element = stack->elements;
 }
 
-
+/**
+ * @description: 获取栈的元素数量
+ * @param zend_ptr_stack* stack 栈首地址
+ * @return: int
+ */
 ZEND_API int zend_ptr_stack_num_elements(zend_ptr_stack *stack)
 {
 	return stack->top;

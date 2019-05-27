@@ -22,11 +22,12 @@
 #ifndef ZEND_PTR_STACK_H
 #define ZEND_PTR_STACK_H
 
+//指针栈的数据结构
 typedef struct _zend_ptr_stack {
-	int top, max;
-	void **elements;
-	void **top_element;
-	zend_bool persistent;
+	int top, max;	//top栈内元素数量，max栈的大小
+	void **elements;	//栈容器
+	void **top_element;	//栈容器
+	zend_bool persistent;	//是否持久化
 } zend_ptr_stack;
 
 
@@ -43,6 +44,7 @@ ZEND_API void zend_ptr_stack_clean(zend_ptr_stack *stack, void (*func)(void *), 
 ZEND_API int zend_ptr_stack_num_elements(zend_ptr_stack *stack);
 END_EXTERN_C()
 
+//扩容内存
 #define ZEND_PTR_STACK_RESIZE_IF_NEEDED(stack, count)		\
 	if (stack->top+count > stack->max) {					\
 		/* we need to allocate more memory */				\
@@ -55,6 +57,7 @@ END_EXTERN_C()
 
 /*	Not doing this with a macro because of the loop unrolling in the element assignment.
 	Just using a macro for 3 in the body for readability sake. */
+//添加3个元素入栈
 static zend_always_inline void zend_ptr_stack_3_push(zend_ptr_stack *stack, void *a, void *b, void *c)
 {
 #define ZEND_PTR_STACK_NUM_ARGS 3
@@ -69,6 +72,7 @@ static zend_always_inline void zend_ptr_stack_3_push(zend_ptr_stack *stack, void
 #undef ZEND_PTR_STACK_NUM_ARGS
 }
 
+//添加两个元素入栈
 static zend_always_inline void zend_ptr_stack_2_push(zend_ptr_stack *stack, void *a, void *b)
 {
 #define ZEND_PTR_STACK_NUM_ARGS 2
@@ -82,6 +86,7 @@ static zend_always_inline void zend_ptr_stack_2_push(zend_ptr_stack *stack, void
 #undef ZEND_PTR_STACK_NUM_ARGS
 }
 
+//将3个元素出栈
 static zend_always_inline void zend_ptr_stack_3_pop(zend_ptr_stack *stack, void **a, void **b, void **c)
 {
 	*a = *(--stack->top_element);
@@ -90,6 +95,7 @@ static zend_always_inline void zend_ptr_stack_3_pop(zend_ptr_stack *stack, void 
 	stack->top -= 3;
 }
 
+//两个元素出栈
 static zend_always_inline void zend_ptr_stack_2_pop(zend_ptr_stack *stack, void **a, void **b)
 {
 	*a = *(--stack->top_element);
@@ -97,6 +103,7 @@ static zend_always_inline void zend_ptr_stack_2_pop(zend_ptr_stack *stack, void 
 	stack->top -= 2;
 }
 
+//一个元素入栈
 static zend_always_inline void zend_ptr_stack_push(zend_ptr_stack *stack, void *ptr)
 {
 	ZEND_PTR_STACK_RESIZE_IF_NEEDED(stack, 1)
@@ -105,12 +112,14 @@ static zend_always_inline void zend_ptr_stack_push(zend_ptr_stack *stack, void *
 	*(stack->top_element++) = ptr;
 }
 
+//一个元素出栈
 static zend_always_inline void *zend_ptr_stack_pop(zend_ptr_stack *stack)
 {
 	stack->top--;
 	return *(--stack->top_element);
 }
 
+//获取栈顶的元素，不出栈
 static zend_always_inline void *zend_ptr_stack_top(zend_ptr_stack *stack)
 {
     return stack->elements[stack->top - 1];
