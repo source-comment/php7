@@ -23,6 +23,14 @@
 #include "zend_llist.h"
 #include "zend_sort.h"
 
+/**
+ * @description: 双链表初始化
+ * @param zend_llist* l 链表指针
+ * @param size_t size 初始化大小
+ * @param llist_dtor_func_t dtor 析构函数
+ * @unsigned char persistent 是否持久化
+ * @return: void
+ */
 ZEND_API void zend_llist_init(zend_llist *l, size_t size, llist_dtor_func_t dtor, unsigned char persistent)
 {
 	l->head  = NULL;
@@ -33,9 +41,15 @@ ZEND_API void zend_llist_init(zend_llist *l, size_t size, llist_dtor_func_t dtor
 	l->persistent = persistent;
 }
 
+/**
+ * @description: 添加元素到双链表尾部
+ * @param zend_llist* l 链表指针
+ * @param void* element 元素指针
+ * @return: void
+ */
 ZEND_API void zend_llist_add_element(zend_llist *l, void *element)
 {
-	zend_llist_element *tmp = pemalloc(sizeof(zend_llist_element)+l->size-1, l->persistent);
+	zend_llist_element *tmp = pemalloc(sizeof(zend_llist_element)+l->size-1, l->persistent);	//申请元素内存
 
 	tmp->prev = l->tail;
 	tmp->next = NULL;
@@ -45,12 +59,17 @@ ZEND_API void zend_llist_add_element(zend_llist *l, void *element)
 		l->head = tmp;
 	}
 	l->tail = tmp;
-	memcpy(tmp->data, element, l->size);
+	memcpy(tmp->data, element, l->size);	//复制数据到链表元素中
 
-	++l->count;
+	++l->count;	//链表元素数+1
 }
 
-
+/**
+ * @description: 添加元素到双链表头部
+ * @param zend_llist* l 链表指针
+ * @param void* element 元素指针
+ * @return: void
+ */
 ZEND_API void zend_llist_prepend_element(zend_llist *l, void *element)
 {
 	zend_llist_element *tmp = pemalloc(sizeof(zend_llist_element)+l->size-1, l->persistent);
@@ -69,6 +88,7 @@ ZEND_API void zend_llist_prepend_element(zend_llist *l, void *element)
 }
 
 
+//删除链表中的元素
 #define DEL_LLIST_ELEMENT(current, l) \
 			if ((current)->prev) {\
 				(current)->prev->next = (current)->next;\
@@ -87,12 +107,20 @@ ZEND_API void zend_llist_prepend_element(zend_llist *l, void *element)
 			--l->count;
 
 
+/**
+ * @description: 删除双链表中的元素
+ * @param zend_llist *l 链表指针
+ * @param void* element 元素指针
+ * @param int (*compare) 判断元素的函数指针
+ * @return: void
+ */
 ZEND_API void zend_llist_del_element(zend_llist *l, void *element, int (*compare)(void *element1, void *element2))
 {
 	zend_llist_element *current=l->head;
 
+	//线性查找链表
 	while (current) {
-		if (compare(current->data, element)) {
+		if (compare(current->data, element)) {	//从链表中查找元素，找到则从链表中删除
 			DEL_LLIST_ELEMENT(current, l);
 			break;
 		}
@@ -100,7 +128,11 @@ ZEND_API void zend_llist_del_element(zend_llist *l, void *element, int (*compare
 	}
 }
 
-
+/**
+ * @description: 销毁双链表
+ * @param zend_llist *l 链表指针
+ * return: void
+ */
 ZEND_API void zend_llist_destroy(zend_llist *l)
 {
 	zend_llist_element *current=l->head, *next;
@@ -108,26 +140,34 @@ ZEND_API void zend_llist_destroy(zend_llist *l)
 	while (current) {
 		next = current->next;
 		if (l->dtor) {
-			l->dtor(current->data);
+			l->dtor(current->data);	//销毁元素数据
 		}
-		pefree(current, l->persistent);
+		pefree(current, l->persistent);	//释放元素内存
 		current = next;
 	}
 
 	l->count = 0;
 }
 
-
+/**
+ * @description: 清除双链表
+ * @param zend_llist *l 链表指针
+ * @return: void
+ */
 ZEND_API void zend_llist_clean(zend_llist *l)
 {
 	zend_llist_destroy(l);
 	l->head = l->tail = NULL;
 }
 
-
+/**
+ * @description: 从双链表的尾部移除一个元素
+ * @param zend_llist *l 链表指针
+ * @return: void
+ */
 ZEND_API void zend_llist_remove_tail(zend_llist *l)
 {
-	zend_llist_element *old_tail = l->tail;
+	zend_llist_element *old_tail = l->tail;	//尾部元素
 	if (!old_tail) {
 		return;
 	}
@@ -142,12 +182,17 @@ ZEND_API void zend_llist_remove_tail(zend_llist *l)
 	--l->count;
 
 	if (l->dtor) {
-		l->dtor(old_tail->data);
+		l->dtor(old_tail->data);	//销毁尾部元素数据
 	}
-	pefree(old_tail, l->persistent);
+	pefree(old_tail, l->persistent);	//释放尾部结构内存
 }
 
-
+/**
+ * @description: 复制一个链表到另一个链表
+ * @param zend_llist *dst 目链标表指针
+ * @param zend_llist *src 源链表指针
+ * @return: 
+ */
 ZEND_API void zend_llist_copy(zend_llist *dst, zend_llist *src)
 {
 	zend_llist_element *ptr;
@@ -160,7 +205,12 @@ ZEND_API void zend_llist_copy(zend_llist *dst, zend_llist *src)
 	}
 }
 
-
+/**
+ * @description: 通过回调函数判断是否删除元素
+ * @param zend_llist *l 链表表指针
+ * @param int(*func) 函数指针
+ * @return: void
+ */
 ZEND_API void zend_llist_apply_with_del(zend_llist *l, int (*func)(void *data))
 {
 	zend_llist_element *element, *next;
@@ -168,14 +218,19 @@ ZEND_API void zend_llist_apply_with_del(zend_llist *l, int (*func)(void *data))
 	element=l->head;
 	while (element) {
 		next = element->next;
-		if (func(element->data)) {
+		if (func(element->data)) {	//如果回调函数返回真，则删除元素
 			DEL_LLIST_ELEMENT(element, l);
 		}
 		element = next;
 	}
 }
 
-
+/**
+ * @description: 对链表中元素逐个执行函数
+ * @param zend_llist *l 链表表指针
+ * @param llist_apply_func_t func 函数
+ * @return: void
+ */
 ZEND_API void zend_llist_apply(zend_llist *l, llist_apply_func_t func)
 {
 	zend_llist_element *element;
@@ -185,6 +240,12 @@ ZEND_API void zend_llist_apply(zend_llist *l, llist_apply_func_t func)
 	}
 }
 
+/**
+ * @description: 对调链表中两个元素
+ * @param zend_llist_element* *p 元素1
+ * @param zend_llist_element* *q 元素2
+ * @return: void
+ */
 static void zend_llist_swap(zend_llist_element **p, zend_llist_element **q)
 {
 	zend_llist_element *t;
@@ -193,6 +254,12 @@ static void zend_llist_swap(zend_llist_element **p, zend_llist_element **q)
 	*q = t;
 }
 
+/**
+ * @description: 链表排序
+ * @param zend_llist* l 链表指针
+ * @param llist_compare_func_t comp_func 元素比较函数
+ * @return: void
+ */
 ZEND_API void zend_llist_sort(zend_llist *l, llist_compare_func_t comp_func)
 {
 	size_t i;
@@ -227,7 +294,13 @@ ZEND_API void zend_llist_sort(zend_llist *l, llist_compare_func_t comp_func)
 	efree(elements);
 }
 
-
+/**
+ * @description: 对链表中元素逐个执行有1个参数的函数
+ * @param zend_llist *l 链表表指针
+ * @param llist_apply_with_arg_func_t func 函数
+ * @param void* arg 参数
+ * @return: void
+ */
 ZEND_API void zend_llist_apply_with_argument(zend_llist *l, llist_apply_with_arg_func_t func, void *arg)
 {
 	zend_llist_element *element;
@@ -237,7 +310,14 @@ ZEND_API void zend_llist_apply_with_argument(zend_llist *l, llist_apply_with_arg
 	}
 }
 
-
+/**
+ * @description: 对链表中元素逐个执行有多个参数的函数
+ * @param zend_llist *l 链表表指针
+ * @param llist_apply_with_arg_func_t func 函数
+ * @param int num_args 参数数量
+ * @param ... 参数列表
+ * @return: void
+ */
 ZEND_API void zend_llist_apply_with_arguments(zend_llist *l, llist_apply_with_args_func_t func, int num_args, ...)
 {
 	zend_llist_element *element;
@@ -250,13 +330,22 @@ ZEND_API void zend_llist_apply_with_arguments(zend_llist *l, llist_apply_with_ar
 	va_end(args);
 }
 
-
+/**
+ * @description: 获取链表元素数量
+ * @param zend_llist *l 链表表指针
+ * @return: size_t 元素数量
+ */
 ZEND_API size_t zend_llist_count(zend_llist *l)
 {
 	return l->count;
 }
 
-
+/**
+ * @description: 获取链表头部元素数据
+ * @param zend_llist *l 链表表指针
+ * @param zend_llist_position 元素指针
+ * @return: void* 元素数据
+ */
 ZEND_API void *zend_llist_get_first_ex(zend_llist *l, zend_llist_position *pos)
 {
 	zend_llist_position *current = pos ? pos : &l->traverse_ptr;
@@ -269,7 +358,12 @@ ZEND_API void *zend_llist_get_first_ex(zend_llist *l, zend_llist_position *pos)
 	}
 }
 
-
+/**
+ * @description: 获取链表尾部元素数据
+ * @param zend_llist *l 链表表指针
+ * @param zend_llist_position 元素指针
+ * @return: void* 元素数据
+ */
 ZEND_API void *zend_llist_get_last_ex(zend_llist *l, zend_llist_position *pos)
 {
 	zend_llist_position *current = pos ? pos : &l->traverse_ptr;
@@ -282,7 +376,12 @@ ZEND_API void *zend_llist_get_last_ex(zend_llist *l, zend_llist_position *pos)
 	}
 }
 
-
+/**
+ * @description: 获取链中所选元素的下一个元素数据
+ * @param zend_llist *l 链表表指针
+ * @param zend_llist_position 所选元素指针
+ * @return: void* 元素数据
+ */
 ZEND_API void *zend_llist_get_next_ex(zend_llist *l, zend_llist_position *pos)
 {
 	zend_llist_position *current = pos ? pos : &l->traverse_ptr;
@@ -296,7 +395,12 @@ ZEND_API void *zend_llist_get_next_ex(zend_llist *l, zend_llist_position *pos)
 	return NULL;
 }
 
-
+/**
+ * @description: 获取链中所选元素的上一个元素数据
+ * @param zend_llist *l 链表表指针
+ * @param zend_llist_position 所选元素指针
+ * @return: void* 元素数据
+ */
 ZEND_API void *zend_llist_get_prev_ex(zend_llist *l, zend_llist_position *pos)
 {
 	zend_llist_position *current = pos ? pos : &l->traverse_ptr;
