@@ -145,10 +145,13 @@ static zend_bool zend_get_unqualified_name(const zend_string *name, const char *
 }
 /* }}} */
 
+//保留类名结构
 struct reserved_class_name {
 	const char *name;
 	size_t len;
 };
+
+//保留的类名定义，不允许用户自定义类使用
 static const struct reserved_class_name reserved_class_names[] = {
 	{ZEND_STRL("bool")},
 	{ZEND_STRL("false")},
@@ -166,6 +169,11 @@ static const struct reserved_class_name reserved_class_names[] = {
 	{NULL, 0}
 };
 
+/**
+ * @description: 判断类名是否为保留的类名
+ * @param zend_string* name 类名
+ * @return: 1 是， 0 不是
+ */
 static zend_bool zend_is_reserved_class_name(const zend_string *name) /* {{{ */
 {
 	const struct reserved_class_name *reserved = reserved_class_names;
@@ -186,6 +194,11 @@ static zend_bool zend_is_reserved_class_name(const zend_string *name) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 断言类名是否合法（如果类名使用了保留名，直接报错）
+ * @param zend_string* name 类名
+ * @return: void
+ */
 void zend_assert_valid_class_name(const zend_string *name) /* {{{ */
 {
 	if (zend_is_reserved_class_name(name)) {
@@ -195,12 +208,14 @@ void zend_assert_valid_class_name(const zend_string *name) /* {{{ */
 }
 /* }}} */
 
+//类型结构体
 typedef struct _builtin_type_info {
 	const char* name;
 	const size_t name_len;
 	const zend_uchar type;
 } builtin_type_info;
 
+//编译类型定义
 static const builtin_type_info builtin_types[] = {
 	{ZEND_STRL("int"), IS_LONG},
 	{ZEND_STRL("float"), IS_DOUBLE},
@@ -212,7 +227,11 @@ static const builtin_type_info builtin_types[] = {
 	{NULL, 0, IS_UNDEF}
 };
 
-
+/**
+ * @description: 根据类型名字，获取变量类型
+ * @param zend_string* name 类型名
+ * @return: zend_uchar 类型
+ */
 static zend_always_inline zend_uchar zend_lookup_builtin_type_by_name(const zend_string *name) /* {{{ */
 {
 	const builtin_type_info *info = &builtin_types[0];
@@ -229,7 +248,11 @@ static zend_always_inline zend_uchar zend_lookup_builtin_type_by_name(const zend
 }
 /* }}} */
 
-
+/**
+ * @description: 上线文切换开始
+ * @param zend_oparray_context * pre_content 上一个，用于保存当前的数据
+ * @return: void
+ */
 void zend_oparray_context_begin(zend_oparray_context *prev_context) /* {{{ */
 {
 	*prev_context = CG(context);
@@ -246,6 +269,11 @@ void zend_oparray_context_begin(zend_oparray_context *prev_context) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 上线文切换结束
+ * @param zend_oparray_context * pre_content 上一个，数据重新赋值给当前数据
+ * @return: void
+ */
 void zend_oparray_context_end(zend_oparray_context *prev_context) /* {{{ */
 {
 	if (CG(context).brk_cont_array) {
@@ -293,6 +321,7 @@ static void zend_end_namespace(void) /* {{{ */ {
 }
 /* }}} */
 
+//文件上下文切换开始
 void zend_file_context_begin(zend_file_context *prev_context) /* {{{ */
 {
 	*prev_context = CG(file_context);
@@ -307,6 +336,7 @@ void zend_file_context_begin(zend_file_context *prev_context) /* {{{ */
 }
 /* }}} */
 
+//文件上下文切换结束
 void zend_file_context_end(zend_file_context *prev_context) /* {{{ */
 {
 	zend_end_namespace();
@@ -315,13 +345,14 @@ void zend_file_context_end(zend_file_context *prev_context) /* {{{ */
 }
 /* }}} */
 
+//初始化编译器的数据结构
 void zend_init_compiler_data_structures(void) /* {{{ */
 {
-	zend_stack_init(&CG(loop_var_stack), sizeof(zend_loop_var));
-	zend_stack_init(&CG(delayed_oplines_stack), sizeof(zend_op));
-	CG(active_class_entry) = NULL;
+	zend_stack_init(&CG(loop_var_stack), sizeof(zend_loop_var));	//调用栈
+	zend_stack_init(&CG(delayed_oplines_stack), sizeof(zend_op));	//延迟指令栈
+	CG(active_class_entry) = NULL;	//活跃类字典
 	CG(in_compilation) = 0;
-	CG(start_lineno) = 0;
+	CG(start_lineno) = 0;	//开始行号
 
 	CG(encoding_declared) = 0;
 }
@@ -350,19 +381,21 @@ ZEND_API void file_handle_dtor(zend_file_handle *fh) /* {{{ */
 }
 /* }}} */
 
+//初始化编译器
 void init_compiler(void) /* {{{ */
 {
 	CG(arena) = zend_arena_create(64 * 1024);
-	CG(active_op_array) = NULL;
-	memset(&CG(context), 0, sizeof(CG(context)));
-	zend_init_compiler_data_structures();
+	CG(active_op_array) = NULL;	//指令集
+	memset(&CG(context), 0, sizeof(CG(context))); //上下文
+	zend_init_compiler_data_structures();	//初始化编译数据结构
 	zend_init_rsrc_list();
-	zend_hash_init(&CG(filenames_table), 8, NULL, ZVAL_PTR_DTOR, 0);
-	zend_llist_init(&CG(open_files), sizeof(zend_file_handle), (void (*)(void *)) file_handle_dtor, 0);
+	zend_hash_init(&CG(filenames_table), 8, NULL, ZVAL_PTR_DTOR, 0);	//初始化文件表
+	zend_llist_init(&CG(open_files), sizeof(zend_file_handle), (void (*)(void *)) file_handle_dtor, 0);	//初始化打开的文件表
 	CG(unclean_shutdown) = 0;
 }
 /* }}} */
 
+//关闭编译器
 void shutdown_compiler(void) /* {{{ */
 {
 	zend_stack_destroy(&CG(loop_var_stack));

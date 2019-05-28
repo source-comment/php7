@@ -68,24 +68,24 @@ typedef struct _zend_ini_entry zend_ini_entry;
 
 
 struct _zend_compiler_globals {
-	zend_stack loop_var_stack;
+	zend_stack loop_var_stack;	//调用栈
 
-	zend_class_entry *active_class_entry;
+	zend_class_entry *active_class_entry; //类
 
 	zend_string *compiled_filename;
 
 	int zend_lineno;
 
-	zend_op_array *active_op_array;
+	zend_op_array *active_op_array;	//指令集
 
 	HashTable *function_table;	/* function symbol table */
 	HashTable *class_table;		/* class table */
 
-	HashTable filenames_table;
+	HashTable filenames_table;	//文件名哈希表
 
 	HashTable *auto_globals;
 
-	zend_bool parse_error;
+	zend_bool parse_error;	//解析错误
 	zend_bool in_compilation;
 	zend_bool short_tags;
 
@@ -93,24 +93,24 @@ struct _zend_compiler_globals {
 
 	zend_bool ini_parser_unbuffered_errors;
 
-	zend_llist open_files;
+	zend_llist open_files;	//打开的文件字典
 
 	struct _zend_ini_parser_param *ini_parser_param;
 
-	uint32_t start_lineno;
-	zend_bool increment_lineno;
+	uint32_t start_lineno;	//开始行号
+	zend_bool increment_lineno;	//行号自增？
 
-	zend_string *doc_comment;
+	zend_string *doc_comment;	//注释
 	uint32_t extra_fn_flags;
 
 	uint32_t compiler_options; /* set of ZEND_COMPILE_* constants */
 
-	zend_oparray_context context;
-	zend_file_context file_context;
+	zend_oparray_context context;	//指令集上下文
+	zend_file_context file_context;	//文件上下文
 
 	zend_arena *arena;
 
-	HashTable interned_strings;
+	HashTable interned_strings;	//内部字符串字典
 
 	const zend_encoding **script_encoding_list;
 	size_t script_encoding_list_size;
