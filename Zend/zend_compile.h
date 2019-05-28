@@ -69,17 +69,17 @@ typedef struct _zend_op zend_op;
 #endif
 
 typedef union _znode_op {
-	uint32_t      constant;
-	uint32_t      var;
-	uint32_t      num;
+	uint32_t      constant;	//常量位置
+	uint32_t      var;	//变量位置
+	uint32_t      num;	//数值位置
 	uint32_t      opline_num; /*  Needs to be signed */
 #if ZEND_USE_ABS_JMP_ADDR
-	zend_op       *jmp_addr;
+	zend_op       *jmp_addr; //跳转的位置
 #else
-	uint32_t      jmp_offset;
+	uint32_t      jmp_offset;	//跳转偏移量
 #endif
 #if ZEND_USE_ABS_CONST_ADDR
-	zval          *zv;
+	zval          *zv;	//任意类型变量
 #endif
 } znode_op;
 
@@ -140,17 +140,18 @@ void zend_const_expr_to_zval(zval *result, zend_ast *ast);
 
 typedef int (*user_opcode_handler_t) (zend_execute_data *execute_data);
 
+//指令结构体
 struct _zend_op {
-	const void *handler;
-	znode_op op1;
-	znode_op op2;
-	znode_op result;
-	uint32_t extended_value;
-	uint32_t lineno;
-	zend_uchar opcode;
-	zend_uchar op1_type;
-	zend_uchar op2_type;
-	zend_uchar result_type;
+	const void *handler; //指令函数
+	znode_op op1;	//操作数1
+	znode_op op2;	//操作数2
+	znode_op result;	//返回值
+	uint32_t extended_value;	//扩展值
+	uint32_t lineno;	//行号
+	zend_uchar opcode;	//指令编号
+	zend_uchar op1_type;	//操作数1类型
+	zend_uchar op2_type;	//操作数2类型
+	zend_uchar result_type;	//返回值类型
 };
 
 
@@ -166,6 +167,7 @@ typedef struct _zend_label {
 	uint32_t opline_num;
 } zend_label;
 
+//try ..catch ... finally结构存储结构体
 typedef struct _zend_try_catch_element {
 	uint32_t try_op;
 	uint32_t catch_op;  /* ketchup! */
@@ -210,16 +212,16 @@ typedef struct _zend_oparray_context {
  */
 
 /* method flags (types) */
-#define ZEND_ACC_STATIC			0x01
-#define ZEND_ACC_ABSTRACT		0x02
-#define ZEND_ACC_FINAL			0x04
-#define ZEND_ACC_IMPLEMENTED_ABSTRACT		0x08
+#define ZEND_ACC_STATIC			0x01	//静态方法
+#define ZEND_ACC_ABSTRACT		0x02	//抽象方法
+#define ZEND_ACC_FINAL			0x04	//final方法
+#define ZEND_ACC_IMPLEMENTED_ABSTRACT		0x08	//实现抽象方法
 
 /* method flags (visibility) */
 /* The order of those must be kept - public < protected < private */
-#define ZEND_ACC_PUBLIC		0x100
-#define ZEND_ACC_PROTECTED	0x200
-#define ZEND_ACC_PRIVATE	0x400
+#define ZEND_ACC_PUBLIC		0x100	//public外部可见公共方法
+#define ZEND_ACC_PROTECTED	0x200	//protected子类可见方法
+#define ZEND_ACC_PRIVATE	0x400	//private私有类，类本身可见
 #define ZEND_ACC_PPP_MASK  (ZEND_ACC_PUBLIC | ZEND_ACC_PROTECTED | ZEND_ACC_PRIVATE)
 
 #define ZEND_ACC_CHANGED	0x800
@@ -288,33 +290,34 @@ typedef struct _zend_oparray_context {
 /* class flags (types) */
 /* ZEND_ACC_IMPLICIT_ABSTRACT_CLASS is used for abstract classes (since it is set by any abstract method even interfaces MAY have it set, too). */
 /* ZEND_ACC_EXPLICIT_ABSTRACT_CLASS denotes that a class was explicitly defined as abstract by using the keyword. */
-#define ZEND_ACC_IMPLICIT_ABSTRACT_CLASS	0x10
-#define ZEND_ACC_EXPLICIT_ABSTRACT_CLASS	0x20
-#define ZEND_ACC_INTERFACE		            0x40
-#define ZEND_ACC_TRAIT						0x80
-#define ZEND_ACC_ANON_CLASS                 0x100
+#define ZEND_ACC_IMPLICIT_ABSTRACT_CLASS	0x10	//显式抽象类
+#define ZEND_ACC_EXPLICIT_ABSTRACT_CLASS	0x20	//隐式抽象类
+#define ZEND_ACC_INTERFACE		            0x40	//接口
+#define ZEND_ACC_TRAIT						0x80	//trait特性
+#define ZEND_ACC_ANON_CLASS                 0x100	
 #define ZEND_ACC_ANON_BOUND                 0x200
-#define ZEND_ACC_INHERITED                  0x400
+#define ZEND_ACC_INHERITED                  0x400	//继承
 
 /* class implement interface(s) flag */
-#define ZEND_ACC_IMPLEMENT_INTERFACES 0x80000
-#define ZEND_ACC_IMPLEMENT_TRAITS	  0x400000
+#define ZEND_ACC_IMPLEMENT_INTERFACES 0x80000	//实现接口
+#define ZEND_ACC_IMPLEMENT_TRAITS	  0x400000	//实现特性
 
 /* class constants updated */
-#define ZEND_ACC_CONSTANTS_UPDATED	  0x100000
+#define ZEND_ACC_CONSTANTS_UPDATED	  0x100000	
 
 /* user class has methods with static variables */
 #define ZEND_HAS_STATIC_IN_METHODS    0x800000
 
 char *zend_visibility_string(uint32_t fn_flags);
 
+//类普通属性成员结构体
 typedef struct _zend_property_info {
 	uint32_t offset; /* property offset for object properties or
 	                      property index for static properties */
 	uint32_t flags;
-	zend_string *name;
-	zend_string *doc_comment;
-	zend_class_entry *ce;
+	zend_string *name;	//属性名
+	zend_string *doc_comment;	//属性注释
+	zend_class_entry *ce;	//所属类
 } zend_property_info;
 
 #define OBJ_PROP(obj, offset) \
@@ -326,24 +329,25 @@ typedef struct _zend_property_info {
 #define OBJ_PROP_TO_NUM(offset) \
 	((offset - OBJ_PROP_TO_OFFSET(0)) / sizeof(zval))
 
+//类常量成员结构体
 typedef struct _zend_class_constant {
-	zval value; /* access flags are stored in reserved: zval.u2.access_flags */
-	zend_string *doc_comment;
-	zend_class_entry *ce;
+	zval value;  /*类常量成员的值 access flags are stored in reserved: zval.u2.access_flags */
+	zend_string *doc_comment;	//注释
+	zend_class_entry *ce;	//所属类
 } zend_class_constant;
 
-/* arg_info for internal functions */
+/* arg_info for internal functions 内部函数参数结构体*/
 typedef struct _zend_internal_arg_info {
-	const char *name;
-	zend_type type;
+	const char *name;	//参数名
+	zend_type type;	//参数类型
 	zend_uchar pass_by_reference;
 	zend_bool is_variadic;
 } zend_internal_arg_info;
 
-/* arg_info for user functions */
+/* arg_info for user functions 用户自定义函数的参数结构体*/
 typedef struct _zend_arg_info {
-	zend_string *name;
-	zend_type type;
+	zend_string *name;	//参数名
+	zend_type type;	//参数类型
 	zend_uchar pass_by_reference;
 	zend_bool is_variadic;
 } zend_arg_info;
@@ -360,78 +364,82 @@ typedef struct _zend_internal_function_info {
 	zend_bool _is_variadic;
 } zend_internal_function_info;
 
+//指令集合结构体
 struct _zend_op_array {
 	/* Common elements */
 	zend_uchar type;
 	zend_uchar arg_flags[3]; /* bitset of arg_info.pass_by_reference */
-	uint32_t fn_flags;
-	zend_string *function_name;
-	zend_class_entry *scope;
-	zend_function *prototype;
-	uint32_t num_args;
-	uint32_t required_num_args;
-	zend_arg_info *arg_info;
+	uint32_t fn_flags;	//函数类型
+	zend_string *function_name;	//函数名
+	zend_class_entry *scope;	//类名
+	zend_function *prototype;	//函数原型
+	uint32_t num_args;	//参数数量
+	uint32_t required_num_args;	//必传参数数量
+	zend_arg_info *arg_info;	//参数
 	/* END of common elements */
 
-	uint32_t *refcount;
+	uint32_t *refcount;	//引用计数
 
-	uint32_t last;
-	zend_op *opcodes;
+	uint32_t last;	//指令数量
+	zend_op *opcodes;	//指令数组
 
-	int last_var;
-	uint32_t T;
-	zend_string **vars;
+	int last_var;	//变量数量
+	uint32_t T;	//临时变量数量
+	zend_string **vars;	//变量数组
 
 	int last_live_range;
 	int last_try_catch;
 	zend_live_range *live_range;
-	zend_try_catch_element *try_catch_array;
+	zend_try_catch_element *try_catch_array;	//try...catch结构数组
 
 	/* static variables support */
-	HashTable *static_variables;
+	HashTable *static_variables;	//静态变量表
 
-	zend_string *filename;
-	uint32_t line_start;
-	uint32_t line_end;
-	zend_string *doc_comment;
+	zend_string *filename;	//文件名
+	uint32_t line_start;	//开始行号
+	uint32_t line_end;		//结束行号
+	zend_string *doc_comment;	//注释
 	uint32_t early_binding; /* the linked list of delayed declarations */
 
-	int last_literal;
-	zval *literals;
+	int last_literal;	//字面量数量 "hello world" 这种的
+	zval *literals;	//字面量数组
 
-	int  cache_size;
-	void **run_time_cache;
+	int  cache_size;	//缓存大小
+	void **run_time_cache;	//运行时缓存
 
 	void *reserved[ZEND_MAX_RESERVED_RESOURCES];
 };
 
-
+//返回值
 #define ZEND_RETURN_VALUE				0
+//返回引用
 #define ZEND_RETURN_REFERENCE			1
 
 /* zend_internal_function_handler */
 typedef void (*zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
 
+//内部函数结构体
 typedef struct _zend_internal_function {
 	/* Common elements */
 	zend_uchar type;
 	zend_uchar arg_flags[3]; /* bitset of arg_info.pass_by_reference */
 	uint32_t fn_flags;
 	zend_string* function_name;
-	zend_class_entry *scope;
-	zend_function *prototype;
-	uint32_t num_args;
-	uint32_t required_num_args;
-	zend_internal_arg_info *arg_info;
+	zend_class_entry *scope;	//所属类
+	zend_function *prototype;	//函数原型
+	uint32_t num_args;	//参数数量
+	uint32_t required_num_args;	//必传参数数量
+	zend_internal_arg_info *arg_info;	//内部函数参数数组
 	/* END of common elements */
 
-	zif_handler handler;
-	struct _zend_module_entry *module;
+	zif_handler handler;//函数的handler
+	struct _zend_module_entry *module;	//模块
 	void *reserved[ZEND_MAX_RESERVED_RESOURCES];
 } zend_internal_function;
 
 #define ZEND_FN_SCOPE_NAME(function)  ((function) && (function)->common.scope ? ZSTR_VAL((function)->common.scope->name) : "")
 
+//函数定义结构体
 union _zend_function {
 	zend_uchar type;	/* MUST be the first element of this struct! */
 	uint32_t   quick_arg_flags;
@@ -460,18 +468,18 @@ typedef enum _zend_call_kind {
 } zend_call_kind;
 
 struct _zend_execute_data {
-	const zend_op       *opline;           /* executed opline                */
-	zend_execute_data   *call;             /* current call                   */
-	zval                *return_value;
-	zend_function       *func;             /* executed function              */
-	zval                 This;             /* this + call_info + num_args    */
-	zend_execute_data   *prev_execute_data;
+	const zend_op       *opline;           /* executed opline              执行的指令   */
+	zend_execute_data   *call;             /* current call                 当前调用栈的数据   */
+	zval                *return_value;	   /* return value 返回值*/
+	zend_function       *func;             /* executed function           正在调用的函数  */
+	zval                 This;             /* this + call_info + num_args  类调用 */
+	zend_execute_data   *prev_execute_data;	/* 上一个调用栈的数据 函数调用之前的数据*/
 	zend_array          *symbol_table;
 #if ZEND_EX_USE_RUN_TIME_CACHE
-	void               **run_time_cache;   /* cache op_array->run_time_cache */
+	void               **run_time_cache;   /* cache op_array->run_time_cache 运行时缓存*/
 #endif
 #if ZEND_EX_USE_LITERALS
-	zval                *literals;         /* cache op_array->literals       */
+	zval                *literals;         /* cache op_array->literals   字面量变量数组    */
 #endif
 };
 
@@ -693,11 +701,11 @@ struct _zend_execute_data {
 
 #endif
 
-#define IS_CONST	(1<<0)
-#define IS_TMP_VAR	(1<<1)
-#define IS_VAR		(1<<2)
-#define IS_UNUSED	(1<<3)	/* Unused variable */
-#define IS_CV		(1<<4)	/* Compiled variable */
+#define IS_CONST	(1<<0)	//常量，php代码中const定义的
+#define IS_TMP_VAR	(1<<1)	//临时变量，$a = 1+2*3 先计算2*3结果存于临时变量，这种类型的变量是不能被其他指令对应的handler重复使用
+#define IS_VAR		(1<<2)	//函数返回值，这种类型的变量是可以被其他指令对应的handler重复使用
+#define IS_UNUSED	(1<<3)	/* Unused variable 未使用变量*/
+#define IS_CV		(1<<4)	/* Compiled variable php代码中定义的变量，$a,$b*/
 
 #include "zend_globals.h"
 
@@ -885,11 +893,11 @@ void zend_assert_valid_class_name(const zend_string *const_name);
 #define ZEND_INTERNAL_CLASS         1
 #define ZEND_USER_CLASS             2
 
-#define ZEND_EVAL				(1<<0)
-#define ZEND_INCLUDE			(1<<1)
-#define ZEND_INCLUDE_ONCE		(1<<2)
-#define ZEND_REQUIRE			(1<<3)
-#define ZEND_REQUIRE_ONCE		(1<<4)
+#define ZEND_EVAL				(1<<0)	//eval('echo "hello world";');
+#define ZEND_INCLUDE			(1<<1)	//include 'a.php';
+#define ZEND_INCLUDE_ONCE		(1<<2)	//include_once 'a.php';
+#define ZEND_REQUIRE			(1<<3)	//require 'a.php';
+#define ZEND_REQUIRE_ONCE		(1<<4)	//require_once 'a.php';
 
 #define ZEND_CT	(1<<0)
 #define ZEND_RT (1<<1)
@@ -903,7 +911,7 @@ void zend_assert_valid_class_name(const zend_string *const_name);
 
 #define ZEND_FETCH_STANDARD		    0x00000000
 
-#define ZEND_ISSET				    0x02000000
+#define ZEND_ISSET				    0x02000000	
 #define ZEND_ISEMPTY			    0x01000000
 #define ZEND_ISSET_ISEMPTY_MASK	    (ZEND_ISSET | ZEND_ISEMPTY)
 
@@ -987,19 +995,32 @@ static zend_always_inline int zend_check_arg_send_type(const zend_function *zf, 
 
 
 END_EXTERN_C()
-
+//类魔术方法方法名的宏定义
+//克隆方法名
 #define ZEND_CLONE_FUNC_NAME		"__clone"
+//构造方法名
 #define ZEND_CONSTRUCTOR_FUNC_NAME	"__construct"
+//析构方法名
 #define ZEND_DESTRUCTOR_FUNC_NAME	"__destruct"
+//get方法名
 #define ZEND_GET_FUNC_NAME          "__get"
+//set方法名
 #define ZEND_SET_FUNC_NAME          "__set"
+//unset方法名
 #define ZEND_UNSET_FUNC_NAME        "__unset"
+//isset方法名
 #define ZEND_ISSET_FUNC_NAME        "__isset"
+//call方法名
 #define ZEND_CALL_FUNC_NAME         "__call"
+//静态call方法名
 #define ZEND_CALLSTATIC_FUNC_NAME   "__callstatic"
+//tostring方法名
 #define ZEND_TOSTRING_FUNC_NAME     "__tostring"
+//autoload函数名
 #define ZEND_AUTOLOAD_FUNC_NAME     "__autoload"
+//invoke方法名
 #define ZEND_INVOKE_FUNC_NAME       "__invoke"
+//debuginfo方法名
 #define ZEND_DEBUGINFO_FUNC_NAME    "__debuginfo"
 
 /* The following constants may be combined in CG(compiler_options)

@@ -30,6 +30,12 @@
 
 #include "zend_vm.h"
 
+/**
+ * @description: zend扩展op_array的构造函数回调
+ * @param zend_extension* extension 扩展指针
+ * @param zend_op_array* op_array
+ * @return: void
+ */
 static void zend_extension_op_array_ctor_handler(zend_extension *extension, zend_op_array *op_array)
 {
 	if (extension->op_array_ctor) {
@@ -37,6 +43,12 @@ static void zend_extension_op_array_ctor_handler(zend_extension *extension, zend
 	}
 }
 
+/**
+ * @description: zend扩展op_array的析构函数回调
+ * @param zend_extension* extension 扩展指针
+ * @param zend_op_array* op_array
+ * @return: void
+ */
 static void zend_extension_op_array_dtor_handler(zend_extension *extension, zend_op_array *op_array)
 {
 	if (extension->op_array_dtor) {
@@ -44,6 +56,11 @@ static void zend_extension_op_array_dtor_handler(zend_extension *extension, zend
 	}
 }
 
+/**
+ * @description: 改变opcodes的内存大小
+ * @param zend_op_array *op_array op数组
+ * @return: 
+ */
 static void op_array_alloc_ops(zend_op_array *op_array, uint32_t size)
 {
 	op_array->opcodes = erealloc(op_array->opcodes, size * sizeof(zend_op));
