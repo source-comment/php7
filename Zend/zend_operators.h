@@ -287,6 +287,11 @@ ZEND_API int ZEND_FASTCALL zend_object_is_true(zval *op);
 #define zval_is_true(op) \
 	zend_is_true(op)
 
+/**
+ * @description: 变量是否为真
+ * @param zval* op 变量指针
+ * @return: int
+ */
 static zend_always_inline int i_zend_is_true(zval *op)
 {
 	int result = 0;

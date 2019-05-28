@@ -29,34 +29,35 @@
 #define ZEND_AST_IS_LIST_SHIFT      7
 #define ZEND_AST_NUM_CHILDREN_SHIFT 8
 
+//抽象语法树的节点类型
 enum _zend_ast_kind {
 	/* special nodes */
-	ZEND_AST_ZVAL = 1 << ZEND_AST_SPECIAL_SHIFT,
+	ZEND_AST_ZVAL = 1 << ZEND_AST_SPECIAL_SHIFT,	//变量声明
 	ZEND_AST_ZNODE,
 
 	/* declaration nodes */
-	ZEND_AST_FUNC_DECL,
-	ZEND_AST_CLOSURE,
-	ZEND_AST_METHOD,
-	ZEND_AST_CLASS,
+	ZEND_AST_FUNC_DECL,	//函数声明
+	ZEND_AST_CLOSURE,	//闭包
+	ZEND_AST_METHOD,	//类方法声明
+	ZEND_AST_CLASS,	//类声明
 
 	/* list nodes */
 	ZEND_AST_ARG_LIST = 1 << ZEND_AST_IS_LIST_SHIFT,
-	ZEND_AST_ARRAY,
-	ZEND_AST_ENCAPS_LIST,
+	ZEND_AST_ARRAY,	//数组声明
+	ZEND_AST_ENCAPS_LIST,	
 	ZEND_AST_EXPR_LIST,
-	ZEND_AST_STMT_LIST,
-	ZEND_AST_IF,
-	ZEND_AST_SWITCH_LIST,
-	ZEND_AST_CATCH_LIST,
-	ZEND_AST_PARAM_LIST,
-	ZEND_AST_CLOSURE_USES,
+	ZEND_AST_STMT_LIST,	//多项式的声明，类似于：$a+$b+3
+	ZEND_AST_IF,	//if表达式声明
+	ZEND_AST_SWITCH_LIST,	//switch表达式声明
+	ZEND_AST_CATCH_LIST,	//catch表达式声明
+	ZEND_AST_PARAM_LIST,	//参数声明
+	ZEND_AST_CLOSURE_USES,	//闭包use声明
 	ZEND_AST_PROP_DECL,
 	ZEND_AST_CONST_DECL,
 	ZEND_AST_CLASS_CONST_DECL,
 	ZEND_AST_NAME_LIST,
 	ZEND_AST_TRAIT_ADAPTATIONS,
-	ZEND_AST_USE,
+	ZEND_AST_USE,	//命名空间use声明
 
 	/* 0 child nodes */
 	ZEND_AST_MAGIC_CONST = 0 << ZEND_AST_NUM_CHILDREN_SHIFT,
@@ -69,14 +70,14 @@ enum _zend_ast_kind {
 	ZEND_AST_UNARY_PLUS,
 	ZEND_AST_UNARY_MINUS,
 	ZEND_AST_CAST,
-	ZEND_AST_EMPTY,
-	ZEND_AST_ISSET,
+	ZEND_AST_EMPTY,	//empty
+	ZEND_AST_ISSET,	//isset
 	ZEND_AST_SILENCE,
-	ZEND_AST_SHELL_EXEC,
-	ZEND_AST_CLONE,
-	ZEND_AST_EXIT,
-	ZEND_AST_PRINT,
-	ZEND_AST_INCLUDE_OR_EVAL,
+	ZEND_AST_SHELL_EXEC,	//shell_exec
+	ZEND_AST_CLONE,	// clone $obj
+	ZEND_AST_EXIT,	//exit,exit()
+	ZEND_AST_PRINT,	//print
+	ZEND_AST_INCLUDE_OR_EVAL,	//include 或eval
 	ZEND_AST_UNARY_OP,
 	ZEND_AST_PRE_INC,
 	ZEND_AST_PRE_DEC,
@@ -116,74 +117,78 @@ enum _zend_ast_kind {
 	ZEND_AST_YIELD,
 	ZEND_AST_COALESCE,
 
-	ZEND_AST_STATIC,
-	ZEND_AST_WHILE,
-	ZEND_AST_DO_WHILE,
-	ZEND_AST_IF_ELEM,
-	ZEND_AST_SWITCH,
-	ZEND_AST_SWITCH_CASE,
+	ZEND_AST_STATIC,	//静态变量声明
+	ZEND_AST_WHILE,	//while结构声明
+	ZEND_AST_DO_WHILE,	//do...while结构声明
+	ZEND_AST_IF_ELEM,	//if ..else声明
+	ZEND_AST_SWITCH,	//switch结构声明
+	ZEND_AST_SWITCH_CASE,	//swithc...结构声明
 	ZEND_AST_DECLARE,
-	ZEND_AST_USE_TRAIT,
-	ZEND_AST_TRAIT_PRECEDENCE,
-	ZEND_AST_METHOD_REFERENCE,
-	ZEND_AST_NAMESPACE,
+	ZEND_AST_USE_TRAIT,	//use trait声明
+	ZEND_AST_TRAIT_PRECEDENCE,	//trait优先声明
+	ZEND_AST_METHOD_REFERENCE,	//类成员引用声明
+	ZEND_AST_NAMESPACE,	//命名空间声明
 	ZEND_AST_USE_ELEM,
-	ZEND_AST_TRAIT_ALIAS,
-	ZEND_AST_GROUP_USE,
+	ZEND_AST_TRAIT_ALIAS,	//trait alias声明
+	ZEND_AST_GROUP_USE,	//命名空间组use声明
 
 	/* 3 child nodes */
-	ZEND_AST_METHOD_CALL = 3 << ZEND_AST_NUM_CHILDREN_SHIFT,
-	ZEND_AST_STATIC_CALL,
+	ZEND_AST_METHOD_CALL = 3 << ZEND_AST_NUM_CHILDREN_SHIFT, //方法调用
+	ZEND_AST_STATIC_CALL,	//静态方法调用
 	ZEND_AST_CONDITIONAL,
 
-	ZEND_AST_TRY,
-	ZEND_AST_CATCH,
+	ZEND_AST_TRY,	//try结构
+	ZEND_AST_CATCH,	//catch结构
 	ZEND_AST_PARAM,
 	ZEND_AST_PROP_ELEM,
 	ZEND_AST_CONST_ELEM,
 
 	/* 4 child nodes */
-	ZEND_AST_FOR = 4 << ZEND_AST_NUM_CHILDREN_SHIFT,
-	ZEND_AST_FOREACH,
+	ZEND_AST_FOR = 4 << ZEND_AST_NUM_CHILDREN_SHIFT,	//for结构
+	ZEND_AST_FOREACH,	//foreach结构
 };
 
 typedef uint16_t zend_ast_kind;
 typedef uint16_t zend_ast_attr;
 
+//抽象语法树结构
 struct _zend_ast {
-	zend_ast_kind kind; /* Type of the node (ZEND_AST_* enum constant) */
-	zend_ast_attr attr; /* Additional attribute, use depending on node type */
-	uint32_t lineno;    /* Line number */
-	zend_ast *child[1]; /* Array of children (using struct hack) */
+	zend_ast_kind kind; /* Type of the node (ZEND_AST_* enum constant) 节点类型*/
+	zend_ast_attr attr; /* Additional attribute, use depending on node type 节点附加属性*/
+	uint32_t lineno;    /* Line number 文件行号*/
+	zend_ast *child[1]; /* Array of children (using struct hack) 子节点数组*/
 };
 
 /* Same as zend_ast, but with children count, which is updated dynamically */
+//列表节点
 typedef struct _zend_ast_list {
-	zend_ast_kind kind;
-	zend_ast_attr attr;
-	uint32_t lineno;
-	uint32_t children;
-	zend_ast *child[1];
+	zend_ast_kind kind; //节点类型
+	zend_ast_attr attr;	//节点属性
+	uint32_t lineno;	//行号
+	uint32_t children;	//子节点数量
+	zend_ast *child[1];	//子节点数组
 } zend_ast_list;
 
 /* Lineno is stored in val.u2.lineno */
+//变量声明节点
 typedef struct _zend_ast_zval {
-	zend_ast_kind kind;
-	zend_ast_attr attr;
-	zval val;
+	zend_ast_kind kind;	//节点类型
+	zend_ast_attr attr;	//节点属性
+	zval val;	//变量值
 } zend_ast_zval;
 
 /* Separate structure for function and class declaration, as they need extra information. */
+//函数或者类的声明节点
 typedef struct _zend_ast_decl {
-	zend_ast_kind kind;
+	zend_ast_kind kind;	//节点类型
 	zend_ast_attr attr; /* Unused - for structure compatibility */
-	uint32_t start_lineno;
-	uint32_t end_lineno;
-	uint32_t flags;
-	unsigned char *lex_pos;
-	zend_string *doc_comment;
-	zend_string *name;
-	zend_ast *child[4];
+	uint32_t start_lineno;	//开始行号
+	uint32_t end_lineno;	//结束行号
+	uint32_t flags;	//属性
+	unsigned char *lex_pos;	//lex位置
+	zend_string *doc_comment;	//注释
+	zend_string *name;	//名字
+	zend_ast *child[4];	//子节点数量
 } zend_ast_decl;
 
 typedef void (*zend_ast_process_t)(zend_ast *ast);

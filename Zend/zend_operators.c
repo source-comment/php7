@@ -879,6 +879,11 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 变量转换成字符串
+ * @param zval* op 待转换的字符串
+ * @return: zend_string*
+ */
 ZEND_API zend_string* ZEND_FASTCALL _zval_get_string_func(zval *op) /* {{{ */
 {
 try_again:
@@ -934,6 +939,13 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 加法计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL add_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zval op1_copy, op2_copy;
@@ -945,25 +957,26 @@ ZEND_API int ZEND_FASTCALL add_function(zval *result, zval *op1, zval *op2) /* {
 				fast_long_add_function(result, op1, op2);
 				return SUCCESS;
 			case TYPE_PAIR(IS_LONG, IS_DOUBLE):
-				ZVAL_DOUBLE(result, ((double)Z_LVAL_P(op1)) + Z_DVAL_P(op2));
+				ZVAL_DOUBLE(result, ((double)Z_LVAL_P(op1)) + Z_DVAL_P(op2));	//整形+浮点
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_DOUBLE, IS_LONG):
-				ZVAL_DOUBLE(result, Z_DVAL_P(op1) + ((double)Z_LVAL_P(op2)));
+				ZVAL_DOUBLE(result, Z_DVAL_P(op1) + ((double)Z_LVAL_P(op2)));	//浮点+整形
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
-				ZVAL_DOUBLE(result, Z_DVAL_P(op1) + Z_DVAL_P(op2));
+				ZVAL_DOUBLE(result, Z_DVAL_P(op1) + Z_DVAL_P(op2));	//浮点+浮点
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
-				if ((result == op1) && (result == op2)) {
+				if ((result == op1) && (result == op2)) {	//数组+数组
 					/* $a += $a */
 					return SUCCESS;
 				}
 				if (result != op1) {
 					ZVAL_DUP(result, op1);
 				}
+				//数组+数组 既是合并
 				zend_hash_merge(Z_ARRVAL_P(result), Z_ARRVAL_P(op2), zval_add_ref, 0);
 				return SUCCESS;
 
@@ -995,6 +1008,14 @@ ZEND_API int ZEND_FASTCALL add_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+
+/**
+ * @description: 减法计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL sub_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zval op1_copy, op2_copy;
@@ -1045,6 +1066,13 @@ ZEND_API int ZEND_FASTCALL sub_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+/**
+ * @description: 乘法计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL mul_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zval op1_copy, op2_copy;
@@ -1100,6 +1128,13 @@ ZEND_API int ZEND_FASTCALL mul_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+/**
+ * @description: 指数计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL pow_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zval op1_copy, op2_copy;
@@ -1201,6 +1236,14 @@ ZEND_API int ZEND_FASTCALL pow_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+
+/**
+ * @description: 除法计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL div_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zval op1_copy, op2_copy;
@@ -1274,6 +1317,14 @@ ZEND_API int ZEND_FASTCALL div_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+
+/**
+ * @description: 取模计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL mod_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1308,6 +1359,13 @@ ZEND_API int ZEND_FASTCALL mod_function(zval *result, zval *op1, zval *op2) /* {
 }
 /* }}} */
 
+/**
+ * @description: bool异或函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL boolean_xor_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	int op1_val, op2_val;
@@ -1358,6 +1416,13 @@ ZEND_API int ZEND_FASTCALL boolean_xor_function(zval *result, zval *op1, zval *o
 }
 /* }}} */
 
+
+/**
+ * @description: bool取反函数 例如：!$a
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL boolean_not_function(zval *result, zval *op1) /* {{{ */
 {
 	if (Z_TYPE_P(op1) < IS_TRUE) {
@@ -1383,6 +1448,12 @@ ZEND_API int ZEND_FASTCALL boolean_not_function(zval *result, zval *op1) /* {{{ 
 }
 /* }}} */
 
+/**
+ * @description: 按位取反函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL bitwise_not_function(zval *result, zval *op1) /* {{{ */
 {
 try_again:
@@ -1423,6 +1494,12 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 按位或计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL bitwise_or_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1501,6 +1578,12 @@ ZEND_API int ZEND_FASTCALL bitwise_or_function(zval *result, zval *op1, zval *op
 }
 /* }}} */
 
+/**
+ * @description: 按位与计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL bitwise_and_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1579,6 +1662,12 @@ ZEND_API int ZEND_FASTCALL bitwise_and_function(zval *result, zval *op1, zval *o
 }
 /* }}} */
 
+/**
+ * @description: 按位异或计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL bitwise_xor_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1657,6 +1746,12 @@ ZEND_API int ZEND_FASTCALL bitwise_xor_function(zval *result, zval *op1, zval *o
 }
 /* }}} */
 
+/**
+ * @description: 按位左移计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL shift_left_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1693,6 +1788,12 @@ ZEND_API int ZEND_FASTCALL shift_left_function(zval *result, zval *op1, zval *op
 }
 /* }}} */
 
+/**
+ * @description: 按位右移计算函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL shift_right_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	zend_long op1_lval, op2_lval;
@@ -1729,6 +1830,12 @@ ZEND_API int ZEND_FASTCALL shift_right_function(zval *result, zval *op1, zval *o
 }
 /* }}} */
 
+/**
+ * @description: 字符串连接函数
+ * @param zval* result 返回值变量指针
+ * @param zval* op1 操作数1
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL concat_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
     zval *orig_op1 = op1;
@@ -1834,6 +1941,13 @@ ZEND_API int ZEND_FASTCALL concat_function(zval *result, zval *op1, zval *op2) /
 }
 /* }}} */
 
+/**
+ * @description: 字符串对比函数
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @param zend_bool 是否区分大小写
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL string_compare_function_ex(zval *op1, zval *op2, zend_bool case_insensitive) /* {{{ */
 {
 	zend_string *str1 = zval_get_string(op1);
@@ -1852,6 +1966,12 @@ ZEND_API int ZEND_FASTCALL string_compare_function_ex(zval *op1, zval *op2, zend
 }
 /* }}} */
 
+/**
+ * @description: 字符串对比函数，不区分大小写
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL string_compare_function(zval *op1, zval *op2) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(op1) == IS_STRING) &&
@@ -1873,6 +1993,12 @@ ZEND_API int ZEND_FASTCALL string_compare_function(zval *op1, zval *op2) /* {{{ 
 }
 /* }}} */
 
+/**
+ * @description: 字符串对比函数,区分大小写
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL string_case_compare_function(zval *op1, zval *op2) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(op1) == IS_STRING) &&
@@ -1895,6 +2021,12 @@ ZEND_API int ZEND_FASTCALL string_case_compare_function(zval *op1, zval *op2) /*
 /* }}} */
 
 #if HAVE_STRCOLL
+/**
+ * @description: 字符串对比函数,依赖环境变量LC_COLLATE
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL string_locale_compare_function(zval *op1, zval *op2) /* {{{ */
 {
 	zend_string *str1 = zval_get_string(op1);
@@ -1908,6 +2040,12 @@ ZEND_API int ZEND_FASTCALL string_locale_compare_function(zval *op1, zval *op2) 
 /* }}} */
 #endif
 
+/**
+ * @description: 数值比较函数
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL numeric_compare_function(zval *op1, zval *op2) /* {{{ */
 {
 	double d1, d2;
@@ -1919,6 +2057,11 @@ ZEND_API int ZEND_FASTCALL numeric_compare_function(zval *op1, zval *op2) /* {{{
 }
 /* }}} */
 
+/**
+ * @description: 变量释放函数
+ * @param zval* op1 操作数
+ * @return:int
+ */
 static inline void zend_free_obj_get_result(zval *op) /* {{{ */
 {
 	if (Z_REFCOUNTED_P(op)) {
@@ -1931,6 +2074,11 @@ static inline void zend_free_obj_get_result(zval *op) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 转换变量为整形
+ * @param zval* result 操作数
+ * @return:void
+ */
 static void ZEND_FASTCALL convert_compare_result_to_long(zval *result) /* {{{ */
 {
 	if (Z_TYPE_P(result) == IS_DOUBLE) {
@@ -1941,6 +2089,13 @@ static void ZEND_FASTCALL convert_compare_result_to_long(zval *result) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 变量比较函数
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int 0：相等，-1：op1小于op2, 1：op1大于op2
+ */
 ZEND_API int ZEND_FASTCALL compare_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	int ret;
@@ -2149,6 +2304,12 @@ static int hash_zval_identical_function(zval *z1, zval *z2) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 变量是否相同
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL zend_is_identical(zval *op1, zval *op2) /* {{{ */
 {
 	if (Z_TYPE_P(op1) != Z_TYPE_P(op2)) {
@@ -2180,6 +2341,12 @@ ZEND_API int ZEND_FASTCALL zend_is_identical(zval *op1, zval *op2) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: op1与op2相同
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_identical_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	ZVAL_BOOL(result, zend_is_identical(op1, op2));
@@ -2187,6 +2354,13 @@ ZEND_API int ZEND_FASTCALL is_identical_function(zval *result, zval *op1, zval *
 }
 /* }}} */
 
+/**
+ * @description: op1与op2不相同
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_not_identical_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	ZVAL_BOOL(result, !zend_is_identical(op1, op2));
@@ -2194,6 +2368,13 @@ ZEND_API int ZEND_FASTCALL is_not_identical_function(zval *result, zval *op1, zv
 }
 /* }}} */
 
+/**
+ * @description: op1等于op2
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_equal_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	if (compare_function(result, op1, op2) == FAILURE) {
@@ -2204,6 +2385,13 @@ ZEND_API int ZEND_FASTCALL is_equal_function(zval *result, zval *op1, zval *op2)
 }
 /* }}} */
 
+/**
+ * @description: op1不等于op2
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_not_equal_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	if (compare_function(result, op1, op2) == FAILURE) {
@@ -2214,6 +2402,13 @@ ZEND_API int ZEND_FASTCALL is_not_equal_function(zval *result, zval *op1, zval *
 }
 /* }}} */
 
+/**
+ * @description: （op1 小于 op2）
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_smaller_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	if (compare_function(result, op1, op2) == FAILURE) {
@@ -2224,6 +2419,13 @@ ZEND_API int ZEND_FASTCALL is_smaller_function(zval *result, zval *op1, zval *op
 }
 /* }}} */
 
+/**
+ * @description: （op1 小于或等于 op2）
+ * @param zval* result 返回值
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return:int
+ */
 ZEND_API int ZEND_FASTCALL is_smaller_or_equal_function(zval *result, zval *op1, zval *op2) /* {{{ */
 {
 	if (compare_function(result, op1, op2) == FAILURE) {
