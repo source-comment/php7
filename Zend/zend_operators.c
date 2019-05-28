@@ -2436,6 +2436,12 @@ ZEND_API int ZEND_FASTCALL is_smaller_or_equal_function(zval *result, zval *op1,
 }
 /* }}} */
 
+/**
+ * @description: 检查类接口
+ * @param zend_class_entry* instance_ce 类
+ * @param zend_class_entry* ce 接口
+ * @return: 
+ */
 static zend_bool ZEND_FASTCALL instanceof_interface_only(const zend_class_entry *instance_ce, const zend_class_entry *ce) /* {{{ */
 {
 	uint32_t i;
@@ -2449,6 +2455,12 @@ static zend_bool ZEND_FASTCALL instanceof_interface_only(const zend_class_entry 
 }
 /* }}} */
 
+/**
+ * @description: 检查类实例
+ * @param zend_class_entry* instance_ce 类实例
+ * @param zend_class_entry* ce 类
+ * @return: 
+ */
 static zend_always_inline zend_bool instanceof_class(const zend_class_entry *instance_ce, const zend_class_entry *ce) /* {{{ */
 {
 	while (instance_ce) {
@@ -2461,6 +2473,12 @@ static zend_always_inline zend_bool instanceof_class(const zend_class_entry *ins
 }
 /* }}} */
 
+/**
+ * @description: 检查类接口
+ * @param zend_class_entry* instance_ce 类
+ * @param zend_class_entry* ce 接口
+ * @return: 
+ */
 static zend_bool ZEND_FASTCALL instanceof_interface(const zend_class_entry *instance_ce, const zend_class_entry *ce) /* {{{ */
 {
 	uint32_t i;
@@ -2474,9 +2492,16 @@ static zend_bool ZEND_FASTCALL instanceof_interface(const zend_class_entry *inst
 }
 /* }}} */
 
+/**
+ * @description: 检查类实例
+ * @param zend_class_entry* instance_ce 实例
+ * @param zend_class_entry* ce 接口
+ * @param int interfaces_only 只检查接口？
+ * @return: 
+ */
 ZEND_API zend_bool ZEND_FASTCALL instanceof_function_ex(const zend_class_entry *instance_ce, const zend_class_entry *ce, zend_bool interfaces_only) /* {{{ */
 {
-	if (ce->ce_flags & ZEND_ACC_INTERFACE) {
+	if (ce->ce_flags & ZEND_ACC_INTERFACE) {	//如果ce是接口
 		if (!interfaces_only) {
 			if (instanceof_interface_only(instance_ce, ce)) {
 				return 1;
@@ -2492,6 +2517,12 @@ ZEND_API zend_bool ZEND_FASTCALL instanceof_function_ex(const zend_class_entry *
 }
 /* }}} */
 
+/**
+ * @description: 检测接口或者类
+ * @param zend_class_entry* instance_ce 类实例
+ * @param zend_class_entry* ce 类
+ * @return: 
+ */
 ZEND_API zend_bool ZEND_FASTCALL instanceof_function(const zend_class_entry *instance_ce, const zend_class_entry *ce) /* {{{ */
 {
 	if (ce->ce_flags & ZEND_ACC_INTERFACE) {
@@ -2506,6 +2537,11 @@ ZEND_API zend_bool ZEND_FASTCALL instanceof_function(const zend_class_entry *ins
 #define UPPER_CASE 2
 #define NUMERIC 3
 
+/**
+ * @description: 字符串自增
+ * @param zval* str
+ * @return: void
+ */
 static void ZEND_FASTCALL increment_string(zval *str) /* {{{ */
 {
 	int carry=0;
@@ -2591,6 +2627,11 @@ static void ZEND_FASTCALL increment_string(zval *str) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 变量自增
+ * @param zval*  op1 变量
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL increment_function(zval *op1) /* {{{ */
 {
 try_again:
@@ -2663,6 +2704,11 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 变量自减
+ * @param zval*  op1 变量
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL decrement_function(zval *op1) /* {{{ */
 {
 	zend_long lval;
@@ -2732,12 +2778,22 @@ try_again:
 }
 /* }}} */
 
+/**
+ * @description: 变量是否为真
+ * @param zval* op 变量
+ * @return: int 1真，0假
+ */
 ZEND_API int ZEND_FASTCALL zend_is_true(zval *op) /* {{{ */
 {
 	return i_zend_is_true(op);
 }
 /* }}} */
 
+/**
+ * @description: 对象是否为真
+ * @param zval* op 对象
+ * @return: int 1真，0假
+ */
 ZEND_API int ZEND_FASTCALL zend_object_is_true(zval *op) /* {{{ */
 {
 	if (Z_OBJ_HT_P(op)->cast_object) {
@@ -2803,6 +2859,12 @@ ZEND_API void ZEND_FASTCALL zend_str_tolower(char *str, size_t length) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 字符串转小写
+ * @param zend_string* str 字符串
+ * @param size_t length 长度
+ * @return: zend_string* 小写字符串
+ */
 ZEND_API char* ZEND_FASTCALL zend_str_tolower_dup_ex(const char *source, size_t length) /* {{{ */
 {
 	register const unsigned char *p = (const unsigned char*)source;
@@ -2831,6 +2893,11 @@ ZEND_API char* ZEND_FASTCALL zend_str_tolower_dup_ex(const char *source, size_t 
 }
 /* }}} */
 
+/**
+ * @description: 字符串转小写
+ * @param zend_string* str 字符串
+ * @return: zend_string* 小写字符串
+ */
 ZEND_API zend_string* ZEND_FASTCALL zend_string_tolower(zend_string *str) /* {{{ */
 {
 	register unsigned char *p = (unsigned char*)ZSTR_VAL(str);
@@ -2859,6 +2926,14 @@ ZEND_API zend_string* ZEND_FASTCALL zend_string_tolower(zend_string *str) /* {{{
 }
 /* }}} */
 
+/**
+ * @description: 字符串比较（二进制安全）
+ * @param char* s1 字符串1
+ * @param size_t len1 字符串1长度
+ * @param char* s2 字符串2
+ * @param size_t len2 字符串2长度
+ * @return: 0相等，非零不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_strcmp(const char *s1, size_t len1, const char *s2, size_t len2) /* {{{ */
 {
 	int retval;
@@ -2875,6 +2950,15 @@ ZEND_API int ZEND_FASTCALL zend_binary_strcmp(const char *s1, size_t len1, const
 }
 /* }}} */
 
+/**
+ * @description: 字符串比较（二进制安全）
+ * @param char* s1 字符串1
+ * @param size_t len1 字符串1长度
+ * @param char* s2 字符串2
+ * @param size_t len2 字符串2长度
+ * @param size_t length 比较长度
+ * @return: 0相等，非零不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_strncmp(const char *s1, size_t len1, const char *s2, size_t len2, size_t length) /* {{{ */
 {
 	int retval;
@@ -2921,6 +3005,15 @@ ZEND_API int ZEND_FASTCALL zend_binary_strcasecmp(const char *s1, size_t len1, c
 }
 /* }}} */
 
+/**
+ * @description: 字符串比较（二进制安全）
+ * @param char* s1 字符串1
+ * @param size_t len1 字符串1长度
+ * @param char* s2 字符串2
+ * @param size_t len2 字符串2长度
+ * @param size_t length 比较长度
+ * @return: 0相等，非零不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_strncasecmp(const char *s1, size_t len1, const char *s2, size_t len2, size_t length) /* {{{ */
 {
 	size_t len;
@@ -2942,6 +3035,14 @@ ZEND_API int ZEND_FASTCALL zend_binary_strncasecmp(const char *s1, size_t len1, 
 }
 /* }}} */
 
+/**
+ * @description: 二进制安全比较两个字符串
+ * @param char * s1
+ * @param size_t len1
+ * @param char * s1
+ * @param size_t len2
+ * @return int
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_strcasecmp_l(const char *s1, size_t len1, const char *s2, size_t len2) /* {{{ */
 {
 	size_t len;
@@ -2964,6 +3065,15 @@ ZEND_API int ZEND_FASTCALL zend_binary_strcasecmp_l(const char *s1, size_t len1,
 }
 /* }}} */
 
+/**
+ * @description: 字符串比较（二进制安全）
+ * @param char* s1 字符串1
+ * @param size_t len1 字符串1长度
+ * @param char* s2 字符串2
+ * @param size_t len2 字符串2长度
+ * @param size_t length 比较长度
+ * @return: 0相等，非零不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_strncasecmp_l(const char *s1, size_t len1, const char *s2, size_t len2, size_t length) /* {{{ */
 {
 	size_t len;
@@ -2985,24 +3095,50 @@ ZEND_API int ZEND_FASTCALL zend_binary_strncasecmp_l(const char *s1, size_t len1
 }
 /* }}} */
 
+/**
+ * @description: 比较两个字符串变量（二进制安全）
+ * @param zval* s1 变量1
+ * @param zval* s2 变量2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_zval_strcmp(zval *s1, zval *s2) /* {{{ */
 {
 	return zend_binary_strcmp(Z_STRVAL_P(s1), Z_STRLEN_P(s1), Z_STRVAL_P(s2), Z_STRLEN_P(s2));
 }
 /* }}} */
 
+/**
+ * @description: 比较两个字符串变量（二进制安全）
+ * @param zval* s1 变量1
+ * @param zval* s2 变量2
+ * @param zval8 s3 比较长度
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_zval_strncmp(zval *s1, zval *s2, zval *s3) /* {{{ */
 {
 	return zend_binary_strncmp(Z_STRVAL_P(s1), Z_STRLEN_P(s1), Z_STRVAL_P(s2), Z_STRLEN_P(s2), Z_LVAL_P(s3));
 }
 /* }}} */
 
+/**
+ * @description: 比较两个字符串变量（二进制安全）
+ * @param zval* s1 变量1
+ * @param zval* s2 变量2
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_zval_strcasecmp(zval *s1, zval *s2) /* {{{ */
 {
 	return zend_binary_strcasecmp_l(Z_STRVAL_P(s1), Z_STRLEN_P(s1), Z_STRVAL_P(s2), Z_STRLEN_P(s2));
 }
 /* }}} */
 
+/**
+ * @description: 比较两个字符串变量（二进制安全）
+ * @param zval* s1 变量1
+ * @param zval* s2 变量2
+ * @param zval8 s3 比较长度
+ * @return: 
+ */
 ZEND_API int ZEND_FASTCALL zend_binary_zval_strncasecmp(zval *s1, zval *s2, zval *s3) /* {{{ */
 {
 	return zend_binary_strncasecmp_l(Z_STRVAL_P(s1), Z_STRLEN_P(s1), Z_STRVAL_P(s2), Z_STRLEN_P(s2), Z_LVAL_P(s3));
@@ -3060,6 +3196,12 @@ string_cmp:
 }
 /* }}} */
 
+/**
+ * @description: 比较两个变量
+ * @param zval* o1 变量1
+ * @param zval* o2 变量2
+ * @return: int 0相等，1不相等
+ */
 static int hash_zval_compare_function(zval *z1, zval *z2) /* {{{ */
 {
 	zval result;
@@ -3071,18 +3213,36 @@ static int hash_zval_compare_function(zval *z1, zval *z2) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 比较两个哈希表
+ * @param zval* o1 哈希表1
+ * @param zval* o2 哈希表2
+ * @return: int 0相等，1不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_compare_symbol_tables(HashTable *ht1, HashTable *ht2) /* {{{ */
 {
 	return ht1 == ht2 ? 0 : zend_hash_compare(ht1, ht2, (compare_func_t) hash_zval_compare_function, 0);
 }
 /* }}} */
 
+/**
+ * @description: 比较两个数组
+ * @param zval* o1 数组1
+ * @param zval* o2 数组2
+ * @return: int 0相等，1不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_compare_arrays(zval *a1, zval *a2) /* {{{ */
 {
 	return zend_compare_symbol_tables(Z_ARRVAL_P(a1), Z_ARRVAL_P(a2));
 }
 /* }}} */
 
+/**
+ * @description: 比较两个对象
+ * @param zval* o1 对象1
+ * @param zval* o2 对象2
+ * @return: int 0相等，1不相等
+ */
 ZEND_API int ZEND_FASTCALL zend_compare_objects(zval *o1, zval *o2) /* {{{ */
 {
 	if (Z_OBJ_P(o1) == Z_OBJ_P(o2)) {
@@ -3106,6 +3266,11 @@ ZEND_API void ZEND_FASTCALL zend_locale_sprintf_double(zval *op ZEND_FILE_LINE_D
 }
 /* }}} */
 
+/**
+ * @description: 整形转字符串
+ * @param zend_long num 数字
+ * @return: zend_string* 字符串
+ */
 ZEND_API zend_string* ZEND_FASTCALL zend_long_to_str(zend_long num) /* {{{ */
 {
 	if ((zend_ulong)num <= 9) {
@@ -3123,6 +3288,14 @@ ZEND_API zend_uchar ZEND_FASTCALL is_numeric_str_function(const zend_string *str
 }
 /* }}} */
 
+/**
+ * @description: 是否数值型字符串
+ * @param char* str 字符串
+ * @param size_t len 字符串长度
+ * @param zend_long* lval 接收整形值
+ * @param double* dval 接收浮点值
+ * @return: 
+ */
 ZEND_API zend_uchar ZEND_FASTCALL _is_numeric_string_ex(const char *str, size_t length, zend_long *lval, double *dval, int allow_errors, int *oflow_info) /* {{{ */
 {
 	const char *ptr;
