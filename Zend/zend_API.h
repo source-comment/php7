@@ -33,38 +33,47 @@
 
 BEGIN_EXTERN_C()
 
+//函数结构体
 typedef struct _zend_function_entry {
-	const char *fname;
-	zif_handler handler;
-	const struct _zend_internal_arg_info *arg_info;
-	uint32_t num_args;
+	const char *fname;	//函数名
+	zif_handler handler;	//原型指针
+	const struct _zend_internal_arg_info *arg_info;	//参数信息
+	uint32_t num_args;	//参数数量
 	uint32_t flags;
 } zend_function_entry;
 
+//函数调用结构体
 typedef struct _zend_fcall_info {
 	size_t size;
-	zval function_name;
-	zval *retval;
-	zval *params;
-	zend_object *object;
+	zval function_name;	//函数名
+	zval *retval;	//返回值
+	zval *params;	//参数
+	zend_object *object;	//对象
 	zend_bool no_separation;
-	uint32_t param_count;
+	uint32_t param_count;	//参数数量
 } zend_fcall_info;
 
+//函数调用缓存
 typedef struct _zend_fcall_info_cache {
-	zend_bool initialized;
-	zend_function *function_handler;
-	zend_class_entry *calling_scope;
-	zend_class_entry *called_scope;
-	zend_object *object;
+	zend_bool initialized;	//是否已初始化
+	zend_function *function_handler;	//函数地址
+	zend_class_entry *calling_scope;	//正在调用的类
+	zend_class_entry *called_scope;		//调用过的类
+	zend_object *object;	//对象指针
 } zend_fcall_info_cache;
 
+//待命名空间的名字
 #define ZEND_NS_NAME(ns, name)			ns "\\" name
 
+//函数定义宏
 #define ZEND_FN(name) zif_##name
+//类成员函数定义宏
 #define ZEND_MN(name) zim_##name
+//函数名和参数定义宏，展开后：name(zend_execute_data *execute_data, zval *return_value)
 #define ZEND_NAMED_FUNCTION(name)		void name(INTERNAL_FUNCTION_PARAMETERS)
+//函数名和参数定义宏, 展开后 zif_name(zend_execute_data *execute_data, zval *return_value)
 #define ZEND_FUNCTION(name)				ZEND_NAMED_FUNCTION(ZEND_FN(name))
+//类成员函数和参数定义宏,展开后 zim_classname_funcname(zend_execute_data *execute_data, zval *return_value)
 #define ZEND_METHOD(classname, name)	ZEND_NAMED_FUNCTION(ZEND_MN(classname##_##name))
 
 #define ZEND_FENTRY(zend_name, name, arg_info, flags)	{ #zend_name, name, arg_info, (uint32_t) (sizeof(arg_info)/sizeof(struct _zend_internal_arg_info)-1), flags },
@@ -128,23 +137,37 @@ typedef struct _zend_fcall_info_cache {
 #define ZEND_END_ARG_INFO()		};
 
 /* Name macros */
+//模块初始化函数名定义宏
 #define ZEND_MODULE_STARTUP_N(module)       zm_startup_##module
+//模块结束函数名定义宏
 #define ZEND_MODULE_SHUTDOWN_N(module)		zm_shutdown_##module
+//请求初始化函数名定义宏
 #define ZEND_MODULE_ACTIVATE_N(module)		zm_activate_##module
+//请求结束函数名定义宏
 #define ZEND_MODULE_DEACTIVATE_N(module)	zm_deactivate_##module
 #define ZEND_MODULE_POST_ZEND_DEACTIVATE_N(module)	zm_post_zend_deactivate_##module
+//模块信息函数名定义宏
 #define ZEND_MODULE_INFO_N(module)			zm_info_##module
+//全局变量构造函数名
 #define ZEND_MODULE_GLOBALS_CTOR_N(module)  zm_globals_ctor_##module
+//全局变量析构函数名
 #define ZEND_MODULE_GLOBALS_DTOR_N(module)  zm_globals_dtor_##module
 
 /* Declaration macros */
+//模块初始化函数
 #define ZEND_MODULE_STARTUP_D(module)		int ZEND_MODULE_STARTUP_N(module)(INIT_FUNC_ARGS)
+//模块结束函数
 #define ZEND_MODULE_SHUTDOWN_D(module)		int ZEND_MODULE_SHUTDOWN_N(module)(SHUTDOWN_FUNC_ARGS)
+//请求初始化函数
 #define ZEND_MODULE_ACTIVATE_D(module)		int ZEND_MODULE_ACTIVATE_N(module)(INIT_FUNC_ARGS)
+//请求结束函数
 #define ZEND_MODULE_DEACTIVATE_D(module)	int ZEND_MODULE_DEACTIVATE_N(module)(SHUTDOWN_FUNC_ARGS)
 #define ZEND_MODULE_POST_ZEND_DEACTIVATE_D(module)	int ZEND_MODULE_POST_ZEND_DEACTIVATE_N(module)(void)
+//模块信息函数
 #define ZEND_MODULE_INFO_D(module)			void ZEND_MODULE_INFO_N(module)(ZEND_MODULE_INFO_FUNC_ARGS)
+//全局变量构造函数
 #define ZEND_MODULE_GLOBALS_CTOR_D(module)  void ZEND_MODULE_GLOBALS_CTOR_N(module)(zend_##module##_globals *module##_globals)
+//全局变量析构函数
 #define ZEND_MODULE_GLOBALS_DTOR_D(module)  void ZEND_MODULE_GLOBALS_DTOR_N(module)(zend_##module##_globals *module##_globals)
 
 #define ZEND_GET_MODULE(name) \
@@ -152,8 +175,10 @@ typedef struct _zend_fcall_info_cache {
 	ZEND_DLEXPORT zend_module_entry *get_module(void) { return &name##_module_entry; }\
     END_EXTERN_C()
 
+//模块结构体定义开始宏，展开后：typedef struct _zend_##module_name##_globals{}
 #define ZEND_BEGIN_MODULE_GLOBALS(module_name)		\
 	typedef struct _zend_##module_name##_globals {
+//模块结构体定义结束宏，展开后：} zend_##module_name##_globals;
 #define ZEND_END_MODULE_GLOBALS(module_name)		\
 	} zend_##module_name##_globals;
 
@@ -174,23 +199,32 @@ typedef struct _zend_fcall_info_cache {
 
 #else
 
+//模块全局变量声明宏
 #define ZEND_DECLARE_MODULE_GLOBALS(module_name)							\
 	zend_##module_name##_globals module_name##_globals;
 #define ZEND_EXTERN_MODULE_GLOBALS(module_name)								\
 	extern zend_##module_name##_globals module_name##_globals;
+
+//模块初始化构造函数调用宏
 #define ZEND_INIT_MODULE_GLOBALS(module_name, globals_ctor, globals_dtor)	\
 	globals_ctor(&module_name##_globals);
+
+//模块全局变量操作宏
 #define ZEND_MODULE_GLOBALS_ACCESSOR(module_name, v) (module_name##_globals.v)
+//模块全局变量指针宏
 #define ZEND_MODULE_GLOBALS_BULK(module_name) (&module_name##_globals)
 
 #endif
 
+//类初始化代码定义宏
 #define INIT_CLASS_ENTRY(class_container, class_name, functions) \
 	INIT_OVERLOADED_CLASS_ENTRY(class_container, class_name, functions, NULL, NULL, NULL)
 
+//类初始化代码定义宏
 #define INIT_CLASS_ENTRY_EX(class_container, class_name, class_name_len, functions) \
 	INIT_OVERLOADED_CLASS_ENTRY_EX(class_container, class_name, class_name_len, functions, NULL, NULL, NULL, NULL, NULL)
 
+//类初始化代码定义宏
 #define INIT_OVERLOADED_CLASS_ENTRY_EX(class_container, class_name, class_name_len, functions, handle_fcall, handle_propget, handle_propset, handle_propunset, handle_propisset) \
 	{															\
 		zend_string *cl_name;									\
@@ -199,6 +233,7 @@ typedef struct _zend_fcall_info_cache {
 		INIT_CLASS_ENTRY_INIT_METHODS(class_container, functions, handle_fcall, handle_propget, handle_propset, handle_propunset, handle_propisset) \
 	}
 
+//类成员函数初始化代码定义宏
 #define INIT_CLASS_ENTRY_INIT_METHODS(class_container, functions, handle_fcall, handle_propget, handle_propset, handle_propunset, handle_propisset) \
 	{															\
 		class_container.constructor = NULL;						\
@@ -1120,6 +1155,14 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_double_weak(zval *arg, double *dest);
 ZEND_API int ZEND_FASTCALL zend_parse_arg_str_slow(zval *arg, zend_string **dest);
 ZEND_API int ZEND_FASTCALL zend_parse_arg_str_weak(zval *arg, zend_string **dest);
 
+/**
+ * @description: 解析bool型参数
+ * @param zval* arg 参数地址
+ * @param zend_bool* dest 结果地址
+ * @param zend_bool* is_null 是否为null
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_bool(zval *arg, zend_bool *dest, zend_bool *is_null, int check_null)
 {
 	if (check_null) {
@@ -1138,6 +1181,14 @@ static zend_always_inline int zend_parse_arg_bool(zval *arg, zend_bool *dest, ze
 	return 1;
 }
 
+/**
+ * @description: 解析整形型参数
+ * @param zval* arg 参数地址
+ * @param zend_long* dest 结果地址
+ * @param zend_bool* is_null 是否为null
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_long(zval *arg, zend_long *dest, zend_bool *is_null, int check_null, int cap)
 {
 	if (check_null) {
@@ -1156,6 +1207,14 @@ static zend_always_inline int zend_parse_arg_long(zval *arg, zend_long *dest, ze
 	return 1;
 }
 
+/**
+ * @description: 解析浮点型参数
+ * @param zval* arg 参数地址
+ * @param double* dest 结果地址
+ * @param zend_bool* is_null 是否为null
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_double(zval *arg, double *dest, zend_bool *is_null, int check_null)
 {
 	if (check_null) {
@@ -1172,6 +1231,13 @@ static zend_always_inline int zend_parse_arg_double(zval *arg, double *dest, zen
 	return 1;
 }
 
+/**
+ * @description: 解析字符串参数
+ * @param zval* arg 参数地址
+ * @param zend_string* dest 结果地址
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_str(zval *arg, zend_string **dest, int check_null)
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_STRING)) {
@@ -1184,6 +1250,14 @@ static zend_always_inline int zend_parse_arg_str(zval *arg, zend_string **dest, 
 	return 1;
 }
 
+/**
+ * @description: 解析字符型参数
+ * @param zval* arg 参数地址
+ * @param char** dest 结果地址
+ * @param size_t* dest_len 结果长度
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_string(zval *arg, char **dest, size_t *dest_len, int check_null)
 {
 	zend_string *str;
@@ -1227,6 +1301,14 @@ static zend_always_inline int zend_parse_arg_path(zval *arg, char **dest, size_t
 	return 1;
 }
 
+/**
+ * @description: 解析数组或对象型参数
+ * @param zval* arg 参数地址
+ * @param zval** dest 结果地址
+ * @param int check_null 是否检测null类型
+ * @param int or_object 是否对象
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_array(zval *arg, zval **dest, int check_null, int or_object)
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_ARRAY) ||
@@ -1240,6 +1322,15 @@ static zend_always_inline int zend_parse_arg_array(zval *arg, zval **dest, int c
 	return 1;
 }
 
+/**
+ * @description: 解析数组或对象属性
+ * @param zval* arg 参数地址
+ * @param zval** dest 结果地址
+ * @param int check_null 是否检测null类型
+ * @param int or_object 是否对象
+ * @param int separate 是否分离
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_array_ht(zval *arg, HashTable **dest, int check_null, int or_object, int separate)
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_ARRAY)) {
@@ -1262,6 +1353,14 @@ static zend_always_inline int zend_parse_arg_array_ht(zval *arg, HashTable **des
 	return 1;
 }
 
+/**
+ * @description: 解析对象型参数
+ * @param zval* arg 参数地址
+ * @param zval** dest 结果地址
+ * @param zend_class_entry* ce 类地址
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_object(zval *arg, zval **dest, zend_class_entry *ce, int check_null)
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_OBJECT) &&
@@ -1275,6 +1374,13 @@ static zend_always_inline int zend_parse_arg_object(zval *arg, zval **dest, zend
 	return 1;
 }
 
+/**
+ * @description: 解析资源型参数
+ * @param zval* arg 参数地址
+ * @param zval** dest 结果地址
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_resource(zval *arg, zval **dest, int check_null)
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_RESOURCE)) {
@@ -1287,6 +1393,15 @@ static zend_always_inline int zend_parse_arg_resource(zval *arg, zval **dest, in
 	return 1;
 }
 
+/**
+ * @description: 直接函数型参数
+ * @param zval* arg 参数地址
+ * @param zend_fcall_info* dest_fci 结果地址
+ * @param zend_fcall_info_cache* dest_fcc 函数调用缓存
+ * @param int check_null 是否检测null类型
+ * @param char** error 错误信息
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline int zend_parse_arg_func(zval *arg, zend_fcall_info *dest_fci, zend_fcall_info_cache *dest_fcc, int check_null, char **error)
 {
 	if (check_null && UNEXPECTED(Z_TYPE_P(arg) == IS_NULL)) {
@@ -1299,6 +1414,13 @@ static zend_always_inline int zend_parse_arg_func(zval *arg, zend_fcall_info *de
 	return 1;
 }
 
+/**
+ * @description: 直接解析变量参数
+ * @param zval* arg 参数地址
+ * @param zval** dest 结果地址
+ * @param int check_null 是否检测null类型
+ * @return: int 解析成功，0解析失败
+ */
 static zend_always_inline void zend_parse_arg_zval(zval *arg, zval **dest, int check_null)
 {
 	*dest = (check_null &&

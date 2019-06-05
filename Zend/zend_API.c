@@ -162,6 +162,7 @@ ZEND_API ZEND_COLD void zend_wrong_param_count(void) /* {{{ */
 /* }}} */
 
 /* Argument parsing API -- andrei */
+//根据编号获取类型名
 ZEND_API char *zend_get_type_by_const(int type) /* {{{ */
 {
 	switch(type) {
@@ -195,6 +196,11 @@ ZEND_API char *zend_get_type_by_const(int type) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取变量类型名称
+ * @param zval* arg 变量地址
+ * @return: char* 类型名
+ */
 ZEND_API char *zend_zval_type_name(const zval *arg) /* {{{ */
 {
 	ZVAL_DEREF(arg);
