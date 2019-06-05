@@ -3536,6 +3536,8 @@ ZEND_API zend_long ZEND_FASTCALL zend_dval_to_lval_slow(double d)
 	return (zend_long)(zend_ulong)dmod;
 }
 #else
+
+//浮点型转换整形
 ZEND_API zend_long ZEND_FASTCALL zend_dval_to_lval_slow(double d)
 {
 	double	two_pow_64 = pow(2., 64.),

@@ -66,6 +66,13 @@ static void op_array_alloc_ops(zend_op_array *op_array, uint32_t size)
 	op_array->opcodes = erealloc(op_array->opcodes, size * sizeof(zend_op));
 }
 
+/**
+ * @description: 初始化op_array
+ * @param zend_op_array* op_array
+ * @param zend_char type
+ * @param int initial_ops_size
+ * @return: 
+ */
 void init_op_array(zend_op_array *op_array, zend_uchar type, int initial_ops_size)
 {
 	op_array->type = type;
@@ -385,12 +392,18 @@ void zend_class_add_ref(zval *zv)
 	ce->refcount++;
 }
 
+/**
+ * @description: 销毁op_array
+ * @param zend_op_array* op_array
+ * @return: void
+ */
 ZEND_API void destroy_op_array(zend_op_array *op_array)
 {
 	zval *literal = op_array->literals;
 	zval *end;
 	uint32_t i;
 
+	//静态变量数组，并且非固定数组属性，减小引用计数后，计数为0则销毁
 	if (op_array->static_variables &&
 	    !(GC_FLAGS(op_array->static_variables) & IS_ARRAY_IMMUTABLE)) {
 		if (--GC_REFCOUNT(op_array->static_variables) == 0) {
@@ -398,17 +411,20 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		}
 	}
 
+	//如果运行时缓存已用则释放缓存
 	if (op_array->run_time_cache && !op_array->function_name) {
 		efree(op_array->run_time_cache);
 		op_array->run_time_cache = NULL;
 	}
 
+	//如果引用计数已经为0，或者减一后扔大于0，则返回
 	if (!op_array->refcount || --(*op_array->refcount) > 0) {
 		return;
 	}
 
 	efree_size(op_array->refcount, sizeof(*(op_array->refcount)));
 
+	//释放变量
 	if (op_array->vars) {
 		i = op_array->last_var;
 		while (i > 0) {
@@ -418,6 +434,7 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		efree(op_array->vars);
 	}
 
+	//释放字面量数组
 	if (literal) {
 	 	end = literal + op_array->last_literal;
 	 	while (literal < end) {
@@ -428,23 +445,30 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 	}
 	efree(op_array->opcodes);
 
+	//释放函数名
 	if (op_array->function_name) {
 		zend_string_release(op_array->function_name);
 	}
+	//释放注释内容
 	if (op_array->doc_comment) {
 		zend_string_release(op_array->doc_comment);
 	}
 	if (op_array->live_range) {
 		efree(op_array->live_range);
 	}
+	//释放try...catch结构
 	if (op_array->try_catch_array) {
 		efree(op_array->try_catch_array);
 	}
+
+	//对zend扩展列表遍历调用析构函数
 	if (zend_extension_flags & ZEND_EXTENSIONS_HAVE_OP_ARRAY_DTOR) {
 		if (op_array->fn_flags & ZEND_ACC_DONE_PASS_TWO) {
 			zend_llist_apply_with_argument(&zend_extensions, (llist_apply_with_arg_func_t) zend_extension_op_array_dtor_handler, op_array);
 		}
 	}
+
+	//释放参数
 	if (op_array->arg_info) {
 		uint32_t num_args = op_array->num_args;
 		zend_arg_info *arg_info = op_array->arg_info;
@@ -468,6 +492,7 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 	}
 }
 
+//初始化zend_op
 void init_op(zend_op *op)
 {
 	memset(op, 0, sizeof(zend_op));
@@ -475,6 +500,11 @@ void init_op(zend_op *op)
 	SET_UNUSED(op->result);
 }
 
+/**
+ * @description: 获取下一条opcode并初始化
+ * @param zend_op_array* op_array 指令集指针
+ * @return: zend_op*
+ */
 zend_op *get_next_op(zend_op_array *op_array)
 {
 	uint32_t next_op_num = op_array->last++;
@@ -492,6 +522,11 @@ zend_op *get_next_op(zend_op_array *op_array)
 	return next_op;
 }
 
+/**
+ * @description: 获取下一条opcode的编号
+ * @param zend_op_array* op_array 指令集指针
+ * @return: zend_op*
+ */
 uint32_t get_next_op_number(zend_op_array *op_array)
 {
 	return op_array->last;
@@ -730,6 +765,11 @@ ZEND_API unary_op_type get_unary_op(int opcode)
 	}
 }
 
+/**
+ * @description: 变量运算函数，加减乘除，复合运算，位运算，逻辑运算等
+ * @param int opcode opcode编号
+ * @return:
+ */
 ZEND_API binary_op_type get_binary_op(int opcode)
 {
 	switch (opcode) {

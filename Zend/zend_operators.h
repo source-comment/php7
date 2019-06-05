@@ -633,6 +633,13 @@ static zend_always_inline void fast_long_add_function(zval *result, zval *op1, z
 #endif
 }
 
+/**
+ * @description: 加法计算函数
+ * @param zval* result 返回值指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 static zend_always_inline int fast_add_function(zval *result, zval *op1, zval *op2)
 {
 	if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
@@ -655,6 +662,13 @@ static zend_always_inline int fast_add_function(zval *result, zval *op1, zval *o
 	return add_function(result, op1, op2);
 }
 
+/**
+ * @description: 减法计算函数
+ * @param zval* result 返回值指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 static zend_always_inline void fast_long_sub_function(zval *result, zval *op1, zval *op2)
 {
 #if PHP_HAVE_BUILTIN_SSUBL_OVERFLOW && SIZEOF_LONG == SIZEOF_ZEND_LONG
@@ -738,11 +752,24 @@ static zend_always_inline void fast_long_sub_function(zval *result, zval *op1, z
 #endif
 }
 
+/**
+ * @description: 除法计算函数
+ * @param zval* result 返回值指针
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: 
+ */
 static zend_always_inline int fast_div_function(zval *result, zval *op1, zval *op2)
 {
 	return div_function(result, op1, op2);
 }
 
+/**
+ * @description: 对比函数
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: int
+ */
 static zend_always_inline int fast_equal_check_function(zval *op1, zval *op2)
 {
 	zval result;
@@ -777,6 +804,12 @@ static zend_always_inline int fast_equal_check_function(zval *op1, zval *op2)
 	return Z_LVAL(result) == 0;
 }
 
+/**
+ * @description: 整形对比函数
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: int
+ */
 static zend_always_inline int fast_equal_check_long(zval *op1, zval *op2)
 {
 	zval result;
@@ -787,6 +820,12 @@ static zend_always_inline int fast_equal_check_long(zval *op1, zval *op2)
 	return Z_LVAL(result) == 0;
 }
 
+/**
+ * @description: 字符串对比函数
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: int
+ */
 static zend_always_inline int fast_equal_check_string(zval *op1, zval *op2)
 {
 	zval result;
@@ -807,6 +846,12 @@ static zend_always_inline int fast_equal_check_string(zval *op1, zval *op2)
 	return Z_LVAL(result) == 0;
 }
 
+/**
+ * @description: 检测是否相同
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: int
+ */
 static zend_always_inline int fast_is_identical_function(zval *op1, zval *op2)
 {
 	if (Z_TYPE_P(op1) != Z_TYPE_P(op2)) {
@@ -817,6 +862,12 @@ static zend_always_inline int fast_is_identical_function(zval *op1, zval *op2)
 	return zend_is_identical(op1, op2);
 }
 
+/**
+ * @description: 检测是否不相同
+ * @param zval* op1 操作数1
+ * @param zval* op2 操作数2
+ * @return: int
+ */
 static zend_always_inline int fast_is_not_identical_function(zval *op1, zval *op2)
 {
 	if (Z_TYPE_P(op1) != Z_TYPE_P(op2)) {
@@ -889,6 +940,11 @@ static zend_always_inline char *zend_print_long_to_buf(char *buf, zend_long num)
 
 ZEND_API zend_string* ZEND_FASTCALL zend_long_to_str(zend_long num);
 
+/**
+ * @description: 解除引用
+ * @param zval* op 操作数
+ * @return: void
+ */
 static zend_always_inline void zend_unwrap_reference(zval *op) /* {{{ */
 {
 	if (Z_REFCOUNT_P(op) == 1) {
