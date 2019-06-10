@@ -106,6 +106,12 @@ ZEND_API int zend_get_parameters_ex(int param_count, ...) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取当前执行的函数参数数组
+ * @param int param_count 参数数量
+ * @param zval* argument_array 存储参数的数组
+ * @return: int 0成功
+ */
 ZEND_API int _zend_get_parameters_array_ex(int param_count, zval *argument_array) /* {{{ */
 {
 	zval *param_ptr;
@@ -128,6 +134,12 @@ ZEND_API int _zend_get_parameters_array_ex(int param_count, zval *argument_array
 }
 /* }}} */
 
+/**
+ * @description: 获取当前执行函数参数数组（包括引用类型参数）
+ * @param int param_count 参数数量，若大于实际参数数量则失败
+ * @param zval* argument_array 存储参数的数组
+ * @return: int 0成功
+ */
 ZEND_API int zend_copy_parameters_array(int param_count, zval *argument_array) /* {{{ */
 {
 	zval *param_ptr;
@@ -152,6 +164,11 @@ ZEND_API int zend_copy_parameters_array(int param_count, zval *argument_array) /
 }
 /* }}} */
 
+/**
+ * @description: 抛出参数数量错误的警告
+ * @param void
+ * @return: void
+ */
 ZEND_API ZEND_COLD void zend_wrong_param_count(void) /* {{{ */
 {
 	const char *space;
@@ -208,29 +225,34 @@ ZEND_API char *zend_zval_type_name(const zval *arg) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取变量类型的字符串名
+ * @param zval* arg 变量指针
+ * @return: zend_string
+ */
 ZEND_API zend_string *zend_zval_get_type(const zval *arg) /* {{{ */
 {
 	switch (Z_TYPE_P(arg)) {
 		case IS_NULL:
-			return ZSTR_KNOWN(ZEND_STR_NULL);
+			return ZSTR_KNOWN(ZEND_STR_NULL);	//NULL
 		case IS_FALSE:
 		case IS_TRUE:
-			return ZSTR_KNOWN(ZEND_STR_BOOLEAN);
+			return ZSTR_KNOWN(ZEND_STR_BOOLEAN);	//boolean
 		case IS_LONG:
-			return ZSTR_KNOWN(ZEND_STR_INTEGER);
+			return ZSTR_KNOWN(ZEND_STR_INTEGER);	//integer
 		case IS_DOUBLE:
-			return ZSTR_KNOWN(ZEND_STR_DOUBLE);
+			return ZSTR_KNOWN(ZEND_STR_DOUBLE);	//double
 		case IS_STRING:
-			return ZSTR_KNOWN(ZEND_STR_STRING);
+			return ZSTR_KNOWN(ZEND_STR_STRING);	//string
 		case IS_ARRAY:
-			return ZSTR_KNOWN(ZEND_STR_ARRAY);
+			return ZSTR_KNOWN(ZEND_STR_ARRAY);	//array
 		case IS_OBJECT:
-			return ZSTR_KNOWN(ZEND_STR_OBJECT);
+			return ZSTR_KNOWN(ZEND_STR_OBJECT);	//object
 		case IS_RESOURCE:
 			if (zend_rsrc_list_get_rsrc_type(Z_RES_P(arg))) {
-				return ZSTR_KNOWN(ZEND_STR_RESOURCE);
+				return ZSTR_KNOWN(ZEND_STR_RESOURCE);	//resource
 			} else {
-				return ZSTR_KNOWN(ZEND_STR_CLOSED_RESOURCE);
+				return ZSTR_KNOWN(ZEND_STR_CLOSED_RESOURCE);	//resource (closed)
 			}
 		default:
 			return NULL;
@@ -238,6 +260,14 @@ ZEND_API zend_string *zend_zval_get_type(const zval *arg) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 抛出调用函数参数数量的异常或错误
+ * @param zend_bool throw_ 是否抛出异常
+ * @param int num_args 参数数量
+ * @param int min_num_args 最小参数数量
+ * @param int max_num_args 最大参数数量
+ * @return: void
+ */
 ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameters_count_error(zend_bool throw_, int num_args, int min_num_args, int max_num_args) /* {{{ */
 {
 	zend_function *active_function = EG(current_execute_data)->func;
@@ -256,6 +286,14 @@ ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameters_count_error(zend_boo
 }
 /* }}} */
 
+/**
+ * @description: 抛出调用函数参数类型的异常或错误
+ * @param zend_bool throw_ 是否抛出异常
+ * @param int num 参数位置
+ * @param zend_expected_type zend_expected_type 异常类型的编号
+ * @param  zval* arg 变量指针
+ * @return: void
+ */
 ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameter_type_error(zend_bool throw_, int num, zend_expected_type expected_type, zval *arg) /* {{{ */
 {
 	const char *space;
@@ -270,6 +308,14 @@ ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameter_type_error(zend_bool 
 }
 /* }}} */
 
+/**
+ * @description: 抛出调用函数参数的类型错误或异常
+ * @param zend_bool throw_ 是否抛异常
+ * @param int num 参数位置
+ * @param char* name 类型名
+ * @param zval* avg 参数指针
+ * @return: void
+ */
 ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameter_class_error(zend_bool throw_, int num, char *name, zval *arg) /* {{{ */
 {
 	const char *space;
@@ -280,6 +326,14 @@ ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_parameter_class_error(zend_bool
 }
 /* }}} */
 
+/**
+ * @description: 抛出调用函数参数的回调类型错误或异常
+ * @param zend_bool throw_ 是否抛异常
+ * @param int severity 错误级别
+ * @param int num 参数位置
+ * @param char* error 错误信息
+ * @return: void
+ */
 ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_callback_error(zend_bool throw_, int severity, int num, char *error) /* {{{ */
 {
 	const char *space;
