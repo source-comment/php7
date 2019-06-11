@@ -4009,6 +4009,14 @@ ZEND_API int zend_declare_class_constant_string(zend_class_entry *ce, const char
 }
 /* }}} */
 
+/**
+ * @description: 更新类的普通属性
+ * @param zend_class_entry* scope 类指针
+ * @param zval* object 对象指针
+ * @param zend_string* name 属性名
+ * @param zval* value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_ex(zend_class_entry *scope, zval *object, zend_string *name, zval *value) /* {{{ */
 {
 	zval property;
@@ -4026,6 +4034,15 @@ ZEND_API void zend_update_property_ex(zend_class_entry *scope, zval *object, zen
 }
 /* }}} */
 
+/**
+ * @description: 更新类的普通属性
+ * @param zend_class_entry* scope 类指针
+ * @param zval* object 对象指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zval* value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property(zend_class_entry *scope, zval *object, const char *name, size_t name_length, zval *value) /* {{{ */
 {
 	zval property;
@@ -4044,6 +4061,13 @@ ZEND_API void zend_update_property(zend_class_entry *scope, zval *object, const 
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性NULL值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @return: int
+ */
 ZEND_API void zend_update_property_null(zend_class_entry *scope, zval *object, const char *name, size_t name_length) /* {{{ */
 {
 	zval tmp;
@@ -4053,6 +4077,14 @@ ZEND_API void zend_update_property_null(zend_class_entry *scope, zval *object, c
 }
 /* }}} */
 
+/**
+ * @description: 对类成员属性执行unset
+ * @param zend_class_entry* scope 类指针
+ * @param zval* object 对象指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @return: int
+ */
 ZEND_API void zend_unset_property(zend_class_entry *scope, zval *object, const char *name, size_t name_length) /* {{{ */
 {
 	zval property;
@@ -4071,6 +4103,14 @@ ZEND_API void zend_unset_property(zend_class_entry *scope, zval *object, const c
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性布尔值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_bool(zend_class_entry *scope, zval *object, const char *name, size_t name_length, zend_long value) /* {{{ */
 {
 	zval tmp;
@@ -4080,6 +4120,14 @@ ZEND_API void zend_update_property_bool(zend_class_entry *scope, zval *object, c
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性整形值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_long(zend_class_entry *scope, zval *object, const char *name, size_t name_length, zend_long value) /* {{{ */
 {
 	zval tmp;
@@ -4089,6 +4137,14 @@ ZEND_API void zend_update_property_long(zend_class_entry *scope, zval *object, c
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性浮点值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param double value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_double(zend_class_entry *scope, zval *object, const char *name, size_t name_length, double value) /* {{{ */
 {
 	zval tmp;
@@ -4098,6 +4154,14 @@ ZEND_API void zend_update_property_double(zend_class_entry *scope, zval *object,
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性字符串值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_string* value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_str(zend_class_entry *scope, zval *object, const char *name, size_t name_length, zend_string *value) /* {{{ */
 {
 	zval tmp;
@@ -4107,6 +4171,14 @@ ZEND_API void zend_update_property_str(zend_class_entry *scope, zval *object, co
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性字符串值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @return: int
+ */
 ZEND_API void zend_update_property_string(zend_class_entry *scope, zval *object, const char *name, size_t name_length, const char *value) /* {{{ */
 {
 	zval tmp;
@@ -4117,6 +4189,15 @@ ZEND_API void zend_update_property_string(zend_class_entry *scope, zval *object,
 }
 /* }}} */
 
+/**
+ * @description: 更新类普通属性字符串值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @param size_t value_length 属性值长度
+ * @return: int
+ */
 ZEND_API void zend_update_property_stringl(zend_class_entry *scope, zval *object, const char *name, size_t name_length, const char *value, size_t value_len) /* {{{ */
 {
 	zval tmp;
@@ -4127,6 +4208,14 @@ ZEND_API void zend_update_property_stringl(zend_class_entry *scope, zval *object
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zval* value 值指针
+ * @return: int
+ */
 ZEND_API int zend_update_static_property(zend_class_entry *scope, const char *name, size_t name_length, zval *value) /* {{{ */
 {
 	zval *property;
@@ -4166,6 +4255,13 @@ ZEND_API int zend_update_static_property(zend_class_entry *scope, const char *na
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性NULL值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_null(zend_class_entry *scope, const char *name, size_t name_length) /* {{{ */
 {
 	zval tmp;
@@ -4175,6 +4271,14 @@ ZEND_API int zend_update_static_property_null(zend_class_entry *scope, const cha
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性布尔值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_bool(zend_class_entry *scope, const char *name, size_t name_length, zend_long value) /* {{{ */
 {
 	zval tmp;
@@ -4184,6 +4288,14 @@ ZEND_API int zend_update_static_property_bool(zend_class_entry *scope, const cha
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性整形值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_long(zend_class_entry *scope, const char *name, size_t name_length, zend_long value) /* {{{ */
 {
 	zval tmp;
@@ -4193,6 +4305,14 @@ ZEND_API int zend_update_static_property_long(zend_class_entry *scope, const cha
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性浮点值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param double value 属性值
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_double(zend_class_entry *scope, const char *name, size_t name_length, double value) /* {{{ */
 {
 	zval tmp;
@@ -4202,6 +4322,14 @@ ZEND_API int zend_update_static_property_double(zend_class_entry *scope, const c
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性字符串值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_string(zend_class_entry *scope, const char *name, size_t name_length, const char *value) /* {{{ */
 {
 	zval tmp;
@@ -4212,6 +4340,15 @@ ZEND_API int zend_update_static_property_string(zend_class_entry *scope, const c
 }
 /* }}} */
 
+/**
+ * @description: 更新类静态属性字符串值
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @param size_t value_length 属性值长度
+ * @return: int
+ */
 ZEND_API int zend_update_static_property_stringl(zend_class_entry *scope, const char *name, size_t name_length, const char *value, size_t value_len) /* {{{ */
 {
 	zval tmp;
@@ -4222,6 +4359,14 @@ ZEND_API int zend_update_static_property_stringl(zend_class_entry *scope, const 
 }
 /* }}} */
 
+/**
+ * @description: 读取类普通属性
+ * @param zend_class_entry* scope 类指针
+ * @param zval* object 对象指针
+ * @param zend_string* name 属性名
+ * @param zend_bool silent 静默读取
+ * @return: 
+ */
 ZEND_API zval *zend_read_property_ex(zend_class_entry *scope, zval *object, zend_string *name, zend_bool silent, zval *rv) /* {{{ */
 {
 	zval property, *value;
@@ -4241,6 +4386,15 @@ ZEND_API zval *zend_read_property_ex(zend_class_entry *scope, zval *object, zend
 }
 /* }}} */
 
+/**
+ * @description: 读取类普通属性
+ * @param zend_class_entry* scope 类指针
+ * @param zval* object 对象指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_bool silent 静默读取
+ * @return: 
+ */
 ZEND_API zval *zend_read_property(zend_class_entry *scope, zval *object, const char *name, size_t name_length, zend_bool silent, zval *rv) /* {{{ */
 {
 	zval *value;
@@ -4253,6 +4407,14 @@ ZEND_API zval *zend_read_property(zend_class_entry *scope, zval *object, const c
 }
 /* }}} */
 
+/**
+ * @description: 读取类的静态属性
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_bool silent 是否沉默读取
+ * @return: zval*
+ */
 ZEND_API zval *zend_read_static_property(zend_class_entry *scope, const char *name, size_t name_length, zend_bool silent) /* {{{ */
 {
 	zval *property;
@@ -4268,6 +4430,11 @@ ZEND_API zval *zend_read_static_property(zend_class_entry *scope, const char *na
 }
 /* }}} */
 
+/**
+ * @description: 保存当前正在使用的的错误与异常处理
+ * @param zend_error_handling* current 当前错误与异常处理器
+ * @return: void
+ */
 ZEND_API void zend_save_error_handling(zend_error_handling *current) /* {{{ */
 {
 	current->handling = EG(error_handling);
@@ -4276,6 +4443,13 @@ ZEND_API void zend_save_error_handling(zend_error_handling *current) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 替换运行时错误与异常处理handler
+ * @param zend_error_handling_t* error_handling 类型
+ * @param zend_class_entry* exception_class 异常类指针
+ * @param zend_error_handling* current 当前正在使用的的错误与异常处理
+ * @return: void
+ */
 ZEND_API void zend_replace_error_handling(zend_error_handling_t error_handling, zend_class_entry *exception_class, zend_error_handling *current) /* {{{ */
 {
 	if (current) {
@@ -4290,6 +4464,12 @@ ZEND_API void zend_replace_error_handling(zend_error_handling_t error_handling, 
 }
 /* }}} */
 
+/**
+ * @description: 返回变量是否相同
+ * @param zval* zv1 变量1
+ * @param zval* zv2 变量2
+ * @return: int
+ */
 static int same_zval(zval *zv1, zval *zv2)  /* {{{ */
 {
 	if (Z_TYPE_P(zv1) != Z_TYPE_P(zv2)) {
@@ -4316,6 +4496,11 @@ static int same_zval(zval *zv1, zval *zv2)  /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 设置运行时错误与异常处理handler
+ * @param zend_error_handling 异常与错误存指针 
+ * @return: void
+ */
 ZEND_API void zend_restore_error_handling(zend_error_handling *saved) /* {{{ */
 {
 	EG(error_handling) = saved->handling;
@@ -4331,6 +4516,12 @@ ZEND_API void zend_restore_error_handling(zend_error_handling *saved) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 根据名字查找类trait的别名
+ * @param zend_class_entry* ce 类指针
+ * @param zend_string* name 名称
+ * @return: 
+ */
 ZEND_API zend_string* zend_find_alias_name(zend_class_entry *ce, zend_string *name) /* {{{ */
 {
 	zend_trait_alias *alias, **alias_ptr;
@@ -4350,6 +4541,12 @@ ZEND_API zend_string* zend_find_alias_name(zend_class_entry *ce, zend_string *na
 }
 /* }}} */
 
+/**
+ * @description: 返回类成员函数名
+ * @param zend_class_entry *ce 类指针
+ * @param zend_function* f 函数指针
+ * @return: zend_string 函数名
+ */
 ZEND_API zend_string *zend_resolve_method_name(zend_class_entry *ce, zend_function *f) /* {{{ */
 {
 	zend_function *func;
@@ -4380,6 +4577,11 @@ ZEND_API zend_string *zend_resolve_method_name(zend_class_entry *ce, zend_functi
 }
 /* }}} */
 
+/**
+ * @description: 获取对象类型名
+ * @param zend_class_entry* ce 对象类指针
+ * @return: char*
+ */
 ZEND_API const char *zend_get_object_type(const zend_class_entry *ce) /* {{{ */
 {
 	if(ce->ce_flags & ZEND_ACC_TRAIT) {
@@ -4392,6 +4594,11 @@ ZEND_API const char *zend_get_object_type(const zend_class_entry *ce) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 变量是否可迭代
+ * @param zval* iterable变量指针
+ * @return: zend_bool
+ */
 ZEND_API zend_bool zend_is_iterable(zval *iterable) /* {{{ */
 {
 	switch (Z_TYPE_P(iterable)) {
