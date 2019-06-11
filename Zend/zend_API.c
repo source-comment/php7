@@ -3750,6 +3750,11 @@ ZEND_API int zend_fcall_info_call(zend_fcall_info *fci, zend_fcall_info_cache *f
 }
 /* }}} */
 
+/**
+ * @description: 获取模块的版本号
+ * @param char* module_name 模块名称
+ * @return: char*
+ */
 ZEND_API const char *zend_get_module_version(const char *module_name) /* {{{ */
 {
 	zend_string *lname;
@@ -3764,10 +3769,20 @@ ZEND_API const char *zend_get_module_version(const char *module_name) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 类的成员属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param zend_string* name 属性名
+ * @param zval* property 属性值指针
+ * @param int access_type权限标识
+ * @param zend_string* doc_comment 注释
+ * @return: int
+ */
 ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, zval *property, int access_type, zend_string *doc_comment) /* {{{ */
 {
 	zend_property_info *property_info, *property_info_ptr;
 
+	//内部类使用持久化内存存储
 	if (ce->type == ZEND_INTERNAL_CLASS) {
 		property_info = pemalloc(sizeof(zend_property_info), 1);
 		if ((access_type & ZEND_ACC_STATIC) || Z_CONSTANT_P(property)) {
@@ -3780,9 +3795,12 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 		}
 	}
 
+	//设置权限为public
 	if (!(access_type & ZEND_ACC_PPP_MASK)) {
 		access_type |= ZEND_ACC_PUBLIC;
 	}
+
+	//静态属性
 	if (access_type & ZEND_ACC_STATIC) {
 		if ((property_info_ptr = zend_hash_find_ptr(&ce->properties_info, name)) != NULL &&
 		    (property_info_ptr->flags & ZEND_ACC_STATIC) != 0) {
@@ -3794,6 +3812,8 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 			ce->default_static_members_table = perealloc(ce->default_static_members_table, sizeof(zval) * ce->default_static_members_count, ce->type == ZEND_INTERNAL_CLASS);
 		}
 		ZVAL_COPY_VALUE(&ce->default_static_members_table[property_info->offset], property);
+
+		//如若是用户定义类，赋值静态成员符号表
 		if (ce->type == ZEND_USER_CLASS) {
 			ce->static_members_table = ce->default_static_members_table;
 		}
@@ -3810,6 +3830,8 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 		}
 		ZVAL_COPY_VALUE(&ce->default_properties_table[OBJ_PROP_TO_NUM(property_info->offset)], property);
 	}
+
+	//如果是内部类，属性类型不能为数组，对象，资源
 	if (ce->type & ZEND_INTERNAL_CLASS) {
 		switch(Z_TYPE_P(property)) {
 			case IS_ARRAY:
@@ -3825,6 +3847,7 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 		name = zend_new_interned_string(zend_string_copy(name));
 	}
 
+	//成员属性不同权限处理
 	if (access_type & ZEND_ACC_PUBLIC) {
 		property_info->name = zend_string_copy(name);
 	} else if (access_type & ZEND_ACC_PRIVATE) {
@@ -3834,6 +3857,7 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 		property_info->name = zend_mangle_property_name("*", 1, ZSTR_VAL(name), ZSTR_LEN(name), ce->type & ZEND_INTERNAL_CLASS);
 	}
 
+	//设置属性结构体的各项值，并更新符号表
 	property_info->name = zend_new_interned_string(property_info->name);
 	property_info->flags = access_type;
 	property_info->doc_comment = doc_comment;
@@ -3844,6 +3868,15 @@ ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, z
 }
 /* }}} */
 
+/**
+ * @description: 类的NULL型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zval* property 属性值指针
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property(zend_class_entry *ce, const char *name, size_t name_length, zval *property, int access_type) /* {{{ */
 {
 	zend_string *key = zend_string_init(name, name_length, ce->type & ZEND_INTERNAL_CLASS);
@@ -3853,6 +3886,14 @@ ZEND_API int zend_declare_property(zend_class_entry *ce, const char *name, size_
 }
 /* }}} */
 
+/**
+ * @description: 类的NULL型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_null(zend_class_entry *ce, const char *name, size_t name_length, int access_type) /* {{{ */
 {
 	zval property;
@@ -3862,6 +3903,15 @@ ZEND_API int zend_declare_property_null(zend_class_entry *ce, const char *name, 
 }
 /* }}} */
 
+/**
+ * @description: 类的布尔型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_bool(zend_class_entry *ce, const char *name, size_t name_length, zend_long value, int access_type) /* {{{ */
 {
 	zval property;
@@ -3871,6 +3921,15 @@ ZEND_API int zend_declare_property_bool(zend_class_entry *ce, const char *name, 
 }
 /* }}} */
 
+/**
+ * @description: 类的整型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_long(zend_class_entry *ce, const char *name, size_t name_length, zend_long value, int access_type) /* {{{ */
 {
 	zval property;
@@ -3880,6 +3939,15 @@ ZEND_API int zend_declare_property_long(zend_class_entry *ce, const char *name, 
 }
 /* }}} */
 
+/**
+ * @description: 类的浮点型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param double value 属性值
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_double(zend_class_entry *ce, const char *name, size_t name_length, double value, int access_type) /* {{{ */
 {
 	zval property;
@@ -3889,6 +3957,15 @@ ZEND_API int zend_declare_property_double(zend_class_entry *ce, const char *name
 }
 /* }}} */
 
+/**
+ * @description: 类的字符型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_string(zend_class_entry *ce, const char *name, size_t name_length, const char *value, int access_type) /* {{{ */
 {
 	zval property;
@@ -3898,6 +3975,16 @@ ZEND_API int zend_declare_property_string(zend_class_entry *ce, const char *name
 }
 /* }}} */
 
+/**
+ * @description: 类的字符型属性声明
+ * @param zend_class_entry* ce 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @param size_t value_length 属性值长度
+ * @param int access_type权限标识
+ * @return: int
+ */
 ZEND_API int zend_declare_property_stringl(zend_class_entry *ce, const char *name, size_t name_length, const char *value, size_t value_len, int access_type) /* {{{ */
 {
 	zval property;
@@ -3907,16 +3994,27 @@ ZEND_API int zend_declare_property_stringl(zend_class_entry *ce, const char *nam
 }
 /* }}} */
 
+/**
+ * @description: 类的常量成员声明
+ * @param zend_class_entry* ce 类指针
+ * @param zend_string* name 属性名
+ * @param zval* value 属性值指针
+ * @param int access_type 权限标识
+ * @param zend_string* doc_comment 注释
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_ex(zend_class_entry *ce, zend_string *name, zval *value, int access_type, zend_string *doc_comment) /* {{{ */
 {
 	zend_class_constant *c;
 
+	//如果是接口，则权限必须是public
 	if (ce->ce_flags & ZEND_ACC_INTERFACE) {
 		if (access_type != ZEND_ACC_PUBLIC) {
 			zend_error_noreturn(E_COMPILE_ERROR, "Access type for interface constant %s::%s must be public", ZSTR_VAL(ce->name), ZSTR_VAL(name));
 		}
 	}
 
+	//如果属性名是class，则提示class为保留字
 	if (zend_string_equals_literal_ci(name, "class")) {
 		zend_error_noreturn(ce->type == ZEND_INTERNAL_CLASS ? E_CORE_ERROR : E_COMPILE_ERROR,
 				"A class constant must not be called 'class'; it is reserved for class name fetching");
@@ -3927,14 +4025,18 @@ ZEND_API int zend_declare_class_constant_ex(zend_class_entry *ce, zend_string *n
 	} else {
 		c = zend_arena_alloc(&CG(arena), sizeof(zend_class_constant));
 	}
+
+	//设置常量结构体的各项属性
 	ZVAL_COPY_VALUE(&c->value, value);
 	Z_ACCESS_FLAGS(c->value) = access_type;
 	c->doc_comment = doc_comment;
 	c->ce = ce;
+
 	if (Z_CONSTANT_P(value)) {
 		ce->ce_flags &= ~ZEND_ACC_CONSTANTS_UPDATED;
 	}
 
+	//写入常量名到到类常量符号表。失败则提示错误
 	if (!zend_hash_add_ptr(&ce->constants_table, name, c)) {
 		zend_error_noreturn(ce->type == ZEND_INTERNAL_CLASS ? E_CORE_ERROR : E_COMPILE_ERROR,
 			"Cannot redefine class constant %s::%s", ZSTR_VAL(ce->name), ZSTR_VAL(name));
@@ -3944,6 +4046,14 @@ ZEND_API int zend_declare_class_constant_ex(zend_class_entry *ce, zend_string *n
 }
 /* }}} */
 
+/**
+ * @description: 类的NULL常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zval* value 属性值指针
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant(zend_class_entry *ce, const char *name, size_t name_length, zval *value) /* {{{ */
 {
 	int ret;
@@ -3958,6 +4068,13 @@ ZEND_API int zend_declare_class_constant(zend_class_entry *ce, const char *name,
 }
 /* }}} */
 
+/**
+ * @description: 类的NULL常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_null(zend_class_entry *ce, const char *name, size_t name_length) /* {{{ */
 {
 	zval constant;
@@ -3967,6 +4084,14 @@ ZEND_API int zend_declare_class_constant_null(zend_class_entry *ce, const char *
 }
 /* }}} */
 
+/**
+ * @description: 类的整型常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_long value 属性值
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_long(zend_class_entry *ce, const char *name, size_t name_length, zend_long value) /* {{{ */
 {
 	zval constant;
@@ -3976,6 +4101,14 @@ ZEND_API int zend_declare_class_constant_long(zend_class_entry *ce, const char *
 }
 /* }}} */
 
+/**
+ * @description: 类的布尔型常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param zend_bool value 属性值
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_bool(zend_class_entry *ce, const char *name, size_t name_length, zend_bool value) /* {{{ */
 {
 	zval constant;
@@ -3985,6 +4118,14 @@ ZEND_API int zend_declare_class_constant_bool(zend_class_entry *ce, const char *
 }
 /* }}} */
 
+/**
+ * @description: 类的浮点型常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param double value 属性值
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_double(zend_class_entry *ce, const char *name, size_t name_length, double value) /* {{{ */
 {
 	zval constant;
@@ -3994,6 +4135,15 @@ ZEND_API int zend_declare_class_constant_double(zend_class_entry *ce, const char
 }
 /* }}} */
 
+/**
+ * @description: 类的字符串型常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @param size_t value_length 属性值长度
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_stringl(zend_class_entry *ce, const char *name, size_t name_length, const char *value, size_t value_length) /* {{{ */
 {
 	zval constant;
@@ -4003,6 +4153,14 @@ ZEND_API int zend_declare_class_constant_stringl(zend_class_entry *ce, const cha
 }
 /* }}} */
 
+/**
+ * @description: 类的字符串型常量属性声明
+ * @param zend_class_entry* scope 类指针
+ * @param char* name 属性名
+ * @param size_t name_length 属性名长度
+ * @param char* value 属性值
+ * @return: int
+ */
 ZEND_API int zend_declare_class_constant_string(zend_class_entry *ce, const char *name, size_t name_length, const char *value) /* {{{ */
 {
 	return zend_declare_class_constant_stringl(ce, name, name_length, value, strlen(value));
