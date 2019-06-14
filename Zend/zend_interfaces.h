@@ -41,12 +41,15 @@ typedef struct _zend_user_iterator {
 
 ZEND_API zval* zend_call_method(zval *object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, const char *function_name, size_t function_name_len, zval *retval, int param_count, zval* arg1, zval* arg2);
 
+//调用无参数的对象成员函数
 #define zend_call_method_with_0_params(obj, obj_ce, fn_proxy, function_name, retval) \
 	zend_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 0, NULL, NULL)
 
+//调用1个参数的对象成员函数
 #define zend_call_method_with_1_params(obj, obj_ce, fn_proxy, function_name, retval, arg1) \
 	zend_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 1, arg1, NULL)
 
+//调用2个参数的对象成员函数
 #define zend_call_method_with_2_params(obj, obj_ce, fn_proxy, function_name, retval, arg1, arg2) \
 	zend_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 2, arg1, arg2)
 

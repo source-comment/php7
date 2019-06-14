@@ -70,12 +70,18 @@
   called, we cal __call handler.
 */
 
+/**
+ * @description: 重建对象属性表
+ * @param zend_object* zobj 对象结构体指针
+ * @return: void
+ */
 ZEND_API void rebuild_object_properties(zend_object *zobj) /* {{{ */
 {
 	if (!zobj->properties) {
 		zend_property_info *prop_info;
 		zend_class_entry *ce = zobj->ce;
 
+		//初始化属性表
 		ALLOC_HASHTABLE(zobj->properties);
 		zend_hash_init(zobj->properties, ce->default_properties_count, NULL, ZVAL_PTR_DTOR, 0);
 		if (ce->default_properties_count) {
@@ -89,10 +95,12 @@ ZEND_API void rebuild_object_properties(zend_object *zobj) /* {{{ */
 						zobj->properties->u.v.flags |= HASH_FLAG_HAS_EMPTY_IND;
 					}
 
+					//将属性加入属性表
 					_zend_hash_append_ind(zobj->properties, prop_info->name,
 						OBJ_PROP(zobj, prop_info->offset));
 				}
 			} ZEND_HASH_FOREACH_END();
+			//如果有父类，并且父类属性数量大于0
 			while (ce->parent && ce->parent->default_properties_count) {
 				ce = ce->parent;
 				ZEND_HASH_FOREACH_PTR(&ce->properties_info, prop_info) {
@@ -115,6 +123,11 @@ ZEND_API void rebuild_object_properties(zend_object *zobj) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取对象属性表
+ * @param zval* object 对象指针
+ * @return: HashTable*
+ */
 ZEND_API HashTable *zend_std_get_properties(zval *object) /* {{{ */
 {
 	zend_object *zobj;
@@ -126,6 +139,13 @@ ZEND_API HashTable *zend_std_get_properties(zval *object) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取对象属性表
+ * @param zval* object 对象指针
+ * @param zval** table 存储属性表的指针
+ * @param int * n 属性数量
+ * @return: HashTable*
+ */
 ZEND_API HashTable *zend_std_get_gc(zval *object, zval **table, int *n) /* {{{ */
 {
 	if (Z_OBJ_HANDLER_P(object, get_properties) != zend_std_get_properties) {
@@ -188,6 +208,13 @@ ZEND_API HashTable *zend_std_get_debug_info(zval *object, int *is_temp) /* {{{ *
 }
 /* }}} */
 
+/**
+ * @description: 调用对象的__get函数，获取对象属性
+ * @param zval* object 对象指针
+ * @param zval* member 对象属性
+ * @param zval* retval 返回值
+ * @return: void
+ */
 static void zend_std_call_getter(zval *object, zval *member, zval *retval) /* {{{ */
 {
 	zend_class_entry *ce = Z_OBJCE_P(object);
@@ -206,6 +233,13 @@ static void zend_std_call_getter(zval *object, zval *member, zval *retval) /* {{
 }
 /* }}} */
 
+/**
+ * @description: 调用对象的__set函数，为属性赋值
+ * @param zval* object 对象指针
+ * @param zval* member 对象属性
+ * @param zval* value 属性值
+ * @return: void
+ */
 static void zend_std_call_setter(zval *object, zval *member, zval *value) /* {{{ */
 {
 	zend_class_entry *ce = Z_OBJCE_P(object);
@@ -223,6 +257,12 @@ static void zend_std_call_setter(zval *object, zval *member, zval *value) /* {{{
 }
 /* }}} */
 
+/**
+ * @description: 调用对象的__unset函数
+ * @param zval* object 对象指针
+ * @param zval* member 对象属性
+ * @return: void
+ */
 static void zend_std_call_unsetter(zval *object, zval *member) /* {{{ */
 {
 	zend_class_entry *ce = Z_OBJCE_P(object);
@@ -244,6 +284,13 @@ static void zend_std_call_unsetter(zval *object, zval *member) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 调用对象的__isset函数,判断属性是否已设置
+ * @param zval* object 对象指针
+ * @param zval* member 对象属性
+ * @param zval* retval 返回值
+ * @return: void
+ */
 static void zend_std_call_issetter(zval *object, zval *member, zval *retval) /* {{{ */
 {
 	zend_class_entry *ce = Z_OBJCE_P(object);
@@ -267,13 +314,21 @@ static void zend_std_call_issetter(zval *object, zval *member, zval *retval) /* 
 }
 /* }}} */
 
+/**
+ * @description: 验证类成员属性权限
+ * @param zend_property_info *property_info 属性
+ * @param zend_class_entry* ce 类指针
+ * @return: 
+ */
 static zend_always_inline int zend_verify_property_access(zend_property_info *property_info, zend_class_entry *ce) /* {{{ */
 {
 	zend_class_entry *scope;
 
+	//public权限
 	if (property_info->flags & ZEND_ACC_PUBLIC) {
 		return 1;
 	} else if (property_info->flags & ZEND_ACC_PRIVATE) {
+		//private权限
 		if (EG(fake_scope)) {
 			scope = EG(fake_scope);
 		} else {
@@ -281,6 +336,7 @@ static zend_always_inline int zend_verify_property_access(zend_property_info *pr
 		}
 		return (ce == scope || property_info->ce == scope);
 	} else if (property_info->flags & ZEND_ACC_PROTECTED) {
+		//protected权限
 		if (EG(fake_scope)) {
 			scope = EG(fake_scope);
 		} else {
@@ -292,6 +348,12 @@ static zend_always_inline int zend_verify_property_access(zend_property_info *pr
 }
 /* }}} */
 
+/**
+ * @description: 判断一个了类是否为另一个类的派生类
+ * @param zend_class_entry *child_class 子类
+ * @param zend_class_entry *parent_class 父类
+ * @return: zend_bool
+ */
 static zend_always_inline zend_bool is_derived_class(zend_class_entry *child_class, zend_class_entry *parent_class) /* {{{ */
 {
 	child_class = child_class->parent;
@@ -391,6 +453,13 @@ exit:
 }
 /* }}} */
 
+/**
+ * @description: 获取类的成员属性
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *member 属性名
+ * @param int silent 静默获取
+ * @return: zend_property_info* 
+ */
 ZEND_API zend_property_info *zend_get_property_info(zend_class_entry *ce, zend_string *member, int silent) /* {{{ */
 {
 	zval *zv;
@@ -398,6 +467,7 @@ ZEND_API zend_property_info *zend_get_property_info(zend_class_entry *ce, zend_s
 	uint32_t flags;
 	zend_class_entry *scope;
 
+	//检测属性名，非静默模式抛出异常
 	if (UNEXPECTED(ZSTR_VAL(member)[0] == '\0' && ZSTR_LEN(member) != 0)) {
 		if (!silent) {
 			zend_throw_error(NULL, "Cannot access property started with '\\0'");
@@ -405,6 +475,7 @@ ZEND_API zend_property_info *zend_get_property_info(zend_class_entry *ce, zend_s
 		return ZEND_WRONG_PROPERTY_INFO;
 	}
 
+	//属性表为空，则返回NULL
 	if (UNEXPECTED(zend_hash_num_elements(&ce->properties_info) == 0)) {
 		goto exit_dynamic;
 	}
@@ -415,6 +486,7 @@ ZEND_API zend_property_info *zend_get_property_info(zend_class_entry *ce, zend_s
 		flags = property_info->flags;
 		if (UNEXPECTED((flags & ZEND_ACC_SHADOW) != 0)) {
 			/* if it's a shadow - go to access it's private */
+			//父类的私有成员，返回NULL
 			property_info = NULL;
 		} else {
 			if (EXPECTED(zend_verify_property_access(property_info, ce) != 0)) {
@@ -462,6 +534,12 @@ exit:
 }
 /* }}} */
 
+/**
+ * @description: 检测对象成员属性的权限
+ * @param zend_object *zobj 对象指针
+ * @param zend_string *prop_info_name 成员属性
+ * @return: 
+ */
 ZEND_API int zend_check_property_access(zend_object *zobj, zend_string *prop_info_name) /* {{{ */
 {
 	zend_property_info *property_info;
@@ -501,6 +579,11 @@ ZEND_API int zend_check_property_access(zend_object *zobj, zend_string *prop_inf
 }
 /* }}} */
 
+/**
+ * @description: 析构函数(释放内存给内存池)
+ * @param zval* el
+ * @return: void
+ */
 static void zend_property_guard_dtor(zval *el) /* {{{ */ {
 	uint32_t *ptr = (uint32_t*)Z_PTR_P(el);
 	if (EXPECTED(!(((zend_uintptr_t)ptr) & 1))) {
