@@ -1494,15 +1494,22 @@ ZEND_API ZEND_COLD zend_bool zend_std_unset_static_property(zend_class_entry *ce
 }
 /* }}} */
 
+/**
+ * @description: 获取对象的构造函数
+ * @param zend_object *zobj 对象指针
+ * @return: _zend_function*
+ */
 ZEND_API union _zend_function *zend_std_get_constructor(zend_object *zobj) /* {{{ */
 {
 	zend_function *constructor = zobj->ce->constructor;
 	zend_class_entry *scope;
 
 	if (constructor) {
+		//构造方法是public权限，不需要其他检查
 		if (constructor->op_array.fn_flags & ZEND_ACC_PUBLIC) {
 			/* No further checks necessary */
 		} else if (constructor->op_array.fn_flags & ZEND_ACC_PRIVATE) {
+			//构造方法是private权限
 			/* Ensure that if we're calling a private function, we're allowed to do so.
 			 */
 			if (EG(fake_scope)) {
@@ -1510,6 +1517,8 @@ ZEND_API union _zend_function *zend_std_get_constructor(zend_object *zobj) /* {{
 			} else {
 				scope = zend_get_executed_scope();
 			}
+
+			//抛出异常
 			if (UNEXPECTED(constructor->common.scope != scope)) {
 				if (scope) {
 					zend_throw_error(NULL, "Call to private %s::%s() from context '%s'", ZSTR_VAL(constructor->common.scope->name), ZSTR_VAL(constructor->common.function_name), ZSTR_VAL(scope->name));
@@ -1545,6 +1554,12 @@ ZEND_API union _zend_function *zend_std_get_constructor(zend_object *zobj) /* {{
 }
 /* }}} */
 
+/**
+ * @description: 比较两个对象类型的变量
+ * @param zval* o1 对象1
+ * @param zval* o2 对象2
+ * @return: 
+ */
 static int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 {
 	zend_object *zobj1, *zobj2;
@@ -1552,12 +1567,16 @@ static int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 	zobj1 = Z_OBJ_P(o1);
 	zobj2 = Z_OBJ_P(o2);
 
+	//比较类，不一样返回1
 	if (zobj1->ce != zobj2->ce) {
 		return 1; /* different classes */
 	}
+
+	//比较对象属性表
 	if (!zobj1->properties && !zobj2->properties) {
 		zval *p1, *p2, *end;
 
+		//对象1的默认属性数量为0，返回0
 		if (!zobj1->ce->default_properties_count) {
 			return 0;
 		}
@@ -1567,26 +1586,33 @@ static int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 		Z_OBJ_PROTECT_RECURSION(o1);
 		Z_OBJ_PROTECT_RECURSION(o2);
 		do {
+			//o1的属性非IS_UNDEF
 			if (Z_TYPE_P(p1) != IS_UNDEF) {
+				//o2的属性非IS_UNDEF
 				if (Z_TYPE_P(p2) != IS_UNDEF) {
 					zval result;
 
+					//逐个对比成员属性
 					if (compare_function(&result, p1, p2)==FAILURE) {
 						Z_OBJ_UNPROTECT_RECURSION(o1);
 						Z_OBJ_UNPROTECT_RECURSION(o2);
 						return 1;
 					}
+
+					//属性对比结果
 					if (Z_LVAL(result) != 0) {
 						Z_OBJ_UNPROTECT_RECURSION(o1);
 						Z_OBJ_UNPROTECT_RECURSION(o2);
 						return Z_LVAL(result);
 					}
 				} else {
+					//o1属性非IS_UNDEF，o2属性是IS_UNDEF，返回1
 					Z_OBJ_UNPROTECT_RECURSION(o1);
 					Z_OBJ_UNPROTECT_RECURSION(o2);
 					return 1;
 				}
 			} else {
+				//o1属性是IS_UNDEF，o2属性非IS_UNDEF，返回1
 				if (Z_TYPE_P(p2) != IS_UNDEF) {
 					Z_OBJ_UNPROTECT_RECURSION(o1);
 					Z_OBJ_UNPROTECT_RECURSION(o2);
@@ -1600,6 +1626,7 @@ static int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 		Z_OBJ_UNPROTECT_RECURSION(o2);
 		return 0;
 	} else {
+		//如果两个对象属性表都为空，重建之后再比较
 		if (!zobj1->properties) {
 			rebuild_object_properties(zobj1);
 		}
@@ -1611,6 +1638,13 @@ static int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 对象属性是否存在
+ * @param zval *object 对象变量指针
+ * @param zval* member 成员属性指针
+ * @param int has_set_exists 检测方式：0如果属性存在，判断是否IS_UNDEF；2已经存在；其他属性是否为true
+ * @return: int
+ */
 static int zend_std_has_property(zval *object, zval *member, int has_set_exists, void **cache_slot) /* {{{ */
 {
 	zend_object *zobj;
@@ -1628,12 +1662,15 @@ static int zend_std_has_property(zval *object, zval *member, int has_set_exists,
 		cache_slot = NULL;
 	}
 
+	//成员属性的偏移量
 	property_offset = zend_get_property_offset(zobj->ce, Z_STR_P(member), 1, cache_slot);
 
 	if (EXPECTED(property_offset != ZEND_WRONG_PROPERTY_OFFSET)) {
 		if (EXPECTED(property_offset != ZEND_DYNAMIC_PROPERTY_OFFSET)) {
+			//获取属性值
 			value = OBJ_PROP(zobj, property_offset);
 			if (Z_TYPE_P(value) != IS_UNDEF) {
+				//属性值非IS_UNDEF
 				goto found;
 			}
 		} else if (EXPECTED(zobj->properties != NULL) &&
