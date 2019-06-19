@@ -139,32 +139,32 @@ struct _zend_executor_globals {
 	zend_array **symtable_cache_limit;
 	zend_array **symtable_cache_ptr;
 
-	zend_array symbol_table;		/* main symbol table */
+	zend_array symbol_table;		/* main symbol table */	//全局符号表。_GET,_POST等。
 
-	HashTable included_files;	/* files already included */
+	HashTable included_files;	/* files already included */ //已经引入的php文件表
 
 	JMP_BUF *bailout;
 
 	int error_reporting;
 	int exit_status;
 
-	HashTable *function_table;	/* function symbol table */
-	HashTable *class_table;		/* class table */
-	HashTable *zend_constants;	/* constants table */
+	HashTable *function_table;	/* function symbol table */ //所有函数表。包括用户自定义的，内部的
+	HashTable *class_table;		/* class table */ //所有class表，
+	HashTable *zend_constants;	/* constants table */ //所有常量符号表
 
-	zval          *vm_stack_top;
-	zval          *vm_stack_end;
-	zend_vm_stack  vm_stack;
+	zval          *vm_stack_top; //可用栈开始位置
+	zval          *vm_stack_end;	//可用栈结束位置
+	zend_vm_stack  vm_stack;	//运行栈
 
-	struct _zend_execute_data *current_execute_data;
+	struct _zend_execute_data *current_execute_data;	//当前运行栈，用于作用域切换
 	zend_class_entry *fake_scope; /* used to avoid checks accessing properties */
 
 	zend_long precision;
 
 	int ticks_count;
 
-	HashTable *in_autoload;
-	zend_function *autoload_func;
+	HashTable *in_autoload;	//自动加载类
+	zend_function *autoload_func;	//自动加载函数
 	zend_bool full_tables_cleanup;
 
 	/* for extended information support */
@@ -179,7 +179,7 @@ struct _zend_executor_globals {
 #endif
 
 	HashTable regular_list;
-	HashTable persistent_list;
+	HashTable persistent_list;	//持久化符号表
 
 	int user_error_handler_error_reporting;
 	zval user_error_handler;

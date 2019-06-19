@@ -368,6 +368,14 @@ static zend_always_inline zend_bool is_derived_class(zend_class_entry *child_cla
 }
 /* }}} */
 
+/**
+ * @description: 获取属性的偏移量
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *member 属性名
+ * @param int silent 沉默模式
+ * @param void** cache_slot 缓存
+ * @return: uint32_t
+ */
 static zend_always_inline uint32_t zend_get_property_offset(zend_class_entry *ce, zend_string *member, int silent, void **cache_slot) /* {{{ */
 {
 	zval *zv;
@@ -375,10 +383,12 @@ static zend_always_inline uint32_t zend_get_property_offset(zend_class_entry *ce
 	uint32_t flags;
 	zend_class_entry *scope;
 
+	//判断缓存。如果缓存中存在直接返回
 	if (cache_slot && EXPECTED(ce == CACHED_PTR_EX(cache_slot))) {
 		return (uint32_t)(intptr_t)CACHED_PTR_EX(cache_slot + 1);
 	}
 
+	//检测属性名是否为\0
 	if (UNEXPECTED(ZSTR_VAL(member)[0] == '\0' && ZSTR_LEN(member) != 0)) {
 		if (!silent) {
 			zend_throw_error(NULL, "Cannot access property started with '\\0'");
@@ -386,10 +396,12 @@ static zend_always_inline uint32_t zend_get_property_offset(zend_class_entry *ce
 		return ZEND_WRONG_PROPERTY_OFFSET;
 	}
 
+	//属性表为空
 	if (UNEXPECTED(zend_hash_num_elements(&ce->properties_info) == 0)) {
 		goto exit_dynamic;
 	}
 
+	//查找属性表
 	zv = zend_hash_find(&ce->properties_info, member);
 	if (EXPECTED(zv != NULL)) {
 		property_info = (zend_property_info*)Z_PTR_P(zv);
@@ -398,6 +410,7 @@ static zend_always_inline uint32_t zend_get_property_offset(zend_class_entry *ce
 			/* if it's a shadow - go to access it's private */
 			property_info = NULL;
 		} else {
+			//检测权限
 			if (EXPECTED(zend_verify_property_access(property_info, ce) != 0)) {
 				if (UNEXPECTED(!(flags & ZEND_ACC_CHANGED))
 					|| UNEXPECTED((flags & ZEND_ACC_PRIVATE))) {
@@ -446,6 +459,7 @@ exit_dynamic:
 	}
 
 exit:
+	//写入缓存
 	if (cache_slot) {
 		CACHE_POLYMORPHIC_PTR_EX(cache_slot, ce, (void*)(intptr_t)property_info->offset);
 	}
@@ -642,6 +656,15 @@ ZEND_API uint32_t *zend_get_property_guard(zend_object *zobj, zend_string *membe
 }
 /* }}} */
 
+/**
+ * @description: 获取对象属性
+ * @param zval *object 对象指针
+ * @param zval *member 属性
+ * @param int type类型
+ * @param void **cache_slot 缓存池
+ * @param zval *rv
+ * @return: 
+ */
 zval *zend_std_read_property(zval *object, zval *member, int type, void **cache_slot, zval *rv) /* {{{ */
 {
 	zend_object *zobj;
@@ -763,6 +786,14 @@ exit:
 }
 /* }}} */
 
+/**
+ * @description: 修改对象属性
+ * @param zval* object 对象指针
+ * @param zval* member 属性
+ * @param zval* value 值
+ * @void **cache_solt 缓存池
+ * @return: void
+ */
 ZEND_API void zend_std_write_property(zval *object, zval *member, zval *value, void **cache_slot) /* {{{ */
 {
 	zend_object *zobj;
@@ -1034,6 +1065,13 @@ static zval *zend_std_get_property_ptr_ptr(zval *object, zval *member, int type,
 }
 /* }}} */
 
+/**
+ * @description: unset对象属性
+ * @param zval* object 对象指针
+ * @param zval* member 属性
+ * @param void **cache_slot 缓存池
+ * @return: void
+ */
 static void zend_std_unset_property(zval *object, zval *member, void **cache_slot) /* {{{ */
 {
 	zend_object *zobj;
@@ -1126,6 +1164,11 @@ static void zend_std_unset_dimension(zval *object, zval *offset) /* {{{ */
 /* Ensures that we're allowed to call a private method.
  * Returns the function address that should be called, or NULL
  * if no such function exists.
+ * @description: 检测类方法的私有权限
+ * @param zend_function* fbc 函数指针
+ * @param zend_class_entry *ce类指针
+ * @param zend_string *function_name 函数名
+ * @return: zend_function
  */
 static inline zend_function *zend_check_private_int(zend_function *fbc, zend_class_entry *ce, zend_string *function_name) /* {{{ */
 {
@@ -1168,6 +1211,13 @@ static inline zend_function *zend_check_private_int(zend_function *fbc, zend_cla
 }
 /* }}} */
 
+/**
+ * @description: 检测类方法的私有权限
+ * @param zend_function* fbc 函数指针
+ * @param zend_class_entry *ce类指针
+ * @param zend_string *function_name 函数名
+ * @return: int
+ */
 ZEND_API int zend_check_private(zend_function *fbc, zend_class_entry *ce, zend_string *function_name) /* {{{ */
 {
 	return zend_check_private_int(fbc, ce, function_name) != NULL;
@@ -1253,6 +1303,13 @@ static zend_always_inline zend_function *zend_get_user_call_function(zend_class_
 }
 /* }}} */
 
+/**
+ * @description: 获取普通方法
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *method_name 方法名
+ * @param zval* key 函数key
+ * @return: _zend_function
+ */
 static union _zend_function *zend_std_get_method(zend_object **obj_ptr, zend_string *method_name, const zval *key) /* {{{ */
 {
 	zend_object *zobj = *obj_ptr;
@@ -1349,6 +1406,13 @@ static zend_always_inline zend_function *zend_get_user_callstatic_function(zend_
 }
 /* }}} */
 
+/**
+ * @description: 获取静态方法
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *property_name 属性名
+ * @param zval* key 函数key
+ * @return: zend_function
+ */
 ZEND_API zend_function *zend_std_get_static_method(zend_class_entry *ce, zend_string *function_name, const zval *key) /* {{{ */
 {
 	zend_function *fbc = NULL;
@@ -1447,6 +1511,13 @@ ZEND_API zend_function *zend_std_get_static_method(zend_class_entry *ce, zend_st
 }
 /* }}} */
 
+/**
+ * @description: 获取静态属性
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *property_name 属性名
+ * @param zend_bool 静默模式
+ * @return: zval*
+ */
 ZEND_API zval *zend_std_get_static_property(zend_class_entry *ce, zend_string *property_name, zend_bool silent) /* {{{ */
 {
 	zend_property_info *property_info = zend_hash_find_ptr(&ce->properties_info, property_name);
@@ -1487,6 +1558,12 @@ undeclared_property:
 }
 /* }}} */
 
+/**
+ * @description: 重置静态成员
+ * @param zend_class_entry *ce 类指针
+ * @param zend_string *property_name 属性名
+ * @return: zend_bool
+ */
 ZEND_API ZEND_COLD zend_bool zend_std_unset_static_property(zend_class_entry *ce, zend_string *property_name) /* {{{ */
 {
 	zend_throw_error(NULL, "Attempt to unset static property %s::$%s", ZSTR_VAL(ce->name), ZSTR_VAL(property_name));
@@ -1848,6 +1925,7 @@ int zend_std_get_closure(zval *obj, zend_class_entry **ce_ptr, zend_function **f
 }
 /* }}} */
 
+//定义对象的操作函数
 ZEND_API zend_object_handlers std_object_handlers = {
 	0,										/* offset */
 
