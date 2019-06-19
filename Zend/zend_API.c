@@ -353,6 +353,14 @@ ZEND_API ZEND_COLD void ZEND_FASTCALL zend_wrong_callback_error(zend_bool throw_
 }
 /* }}} */
 
+/**
+ * @description: 解析class类型参数
+ * @param zval* arg参数指针
+ * @param zend_class_entry **pce 类指针
+ * @param int num参数位置
+ * @param int check_null 是否检测null
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_class(zval *arg, zend_class_entry **pce, int num, int check_null) /* {{{ */
 {
 	zend_class_entry *ce_base = *pce;
@@ -388,6 +396,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_class(zval *arg, zend_class_entry **pc
 }
 /* }}} */
 
+/**
+ * @description: 解析bool类型参数
+ * @param zval* arg 参数指针
+ * @param zend_bool* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_bool_weak(zval *arg, zend_bool *dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) <= IS_STRING)) {
@@ -399,6 +413,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_bool_weak(zval *arg, zend_bool *dest) 
 }
 /* }}} */
 
+/**
+ * @description: 解析bool类型参数
+ * @param zval* arg 参数指针
+ * @param zend_bool* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_bool_slow(zval *arg, zend_bool *dest) /* {{{ */
 {
 	if (UNEXPECTED(ZEND_ARG_USES_STRICT_TYPES())) {
@@ -408,6 +428,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_bool_slow(zval *arg, zend_bool *dest) 
 }
 /* }}} */
 
+/**
+ * @description: 解析整型参数
+ * @param zval* arg 参数指针
+ * @param zend_long* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_long_weak(zval *arg, zend_long *dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_DOUBLE)) {
@@ -448,6 +474,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_long_weak(zval *arg, zend_long *dest) 
 }
 /* }}} */
 
+/**
+ * @description: 解析整型参数
+ * @param zval* arg 参数指针
+ * @param zend_long* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_long_slow(zval *arg, zend_long *dest) /* {{{ */
 {
 	if (UNEXPECTED(ZEND_ARG_USES_STRICT_TYPES())) {
@@ -457,6 +489,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_long_slow(zval *arg, zend_long *dest) 
 }
 /* }}} */
 
+/**
+ * @description: 解析整型参数
+ * @param zval* arg 参数指针
+ * @param zend_long* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_long_cap_weak(zval *arg, zend_long *dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_DOUBLE)) {
@@ -489,6 +527,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_long_cap_weak(zval *arg, zend_long *de
 }
 /* }}} */
 
+/**
+ * @description: 解析整型参数
+ * @param zval* arg 参数指针
+ * @param zend_long* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_long_cap_slow(zval *arg, zend_long *dest) /* {{{ */
 {
 	if (UNEXPECTED(ZEND_ARG_USES_STRICT_TYPES())) {
@@ -498,6 +542,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_long_cap_slow(zval *arg, zend_long *de
 }
 /* }}} */
 
+/**
+ * @description: 解析浮点型参数
+ * @param zval* arg 参数指针
+ * @param double* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_double_weak(zval *arg, double *dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_LONG)) {
@@ -524,6 +574,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_double_weak(zval *arg, double *dest) /
 }
 /* }}} */
 
+/**
+ * @description: 解析浮点型参数
+ * @param zval* arg 参数指针
+ * @param double* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_double_slow(zval *arg, double *dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) == IS_LONG)) {
@@ -536,6 +592,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_double_slow(zval *arg, double *dest) /
 }
 /* }}} */
 
+/**
+ * @description: 解析字符串型参数
+ * @param zval* arg 参数指针
+ * @param zend_string* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_str_weak(zval *arg, zend_string **dest) /* {{{ */
 {
 	if (EXPECTED(Z_TYPE_P(arg) < IS_STRING)) {
@@ -574,6 +636,12 @@ ZEND_API int ZEND_FASTCALL zend_parse_arg_str_weak(zval *arg, zend_string **dest
 }
 /* }}} */
 
+/**
+ * @description: 解析字符串型参数
+ * @param zval* arg 参数指针
+ * @param zend_string* dest 存储解析结果
+ * @return: int
+ */
 ZEND_API int ZEND_FASTCALL zend_parse_arg_str_slow(zval *arg, zend_string **dest) /* {{{ */
 {
 	if (UNEXPECTED(ZEND_ARG_USES_STRICT_TYPES())) {
@@ -1253,6 +1321,12 @@ ZEND_API int zend_update_class_constants(zend_class_entry *class_type) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 初始化对象属性表
+ * @param zend_object *object 对象指针
+ * @param zend_class_entry* class_type 类指针
+ * @return: void
+ */
 ZEND_API void object_properties_init(zend_object *object, zend_class_entry *class_type) /* {{{ */
 {
 	if (class_type->default_properties_count) {
@@ -1274,6 +1348,12 @@ ZEND_API void object_properties_init(zend_object *object, zend_class_entry *clas
 }
 /* }}} */
 
+/**
+ * @description: 初始化对象属性表
+ * @param zend_object *object 对象指针
+ * @param HashTable *properties 属性表
+ * @return: void
+ */
 ZEND_API void object_properties_init_ex(zend_object *object, HashTable *properties) /* {{{ */
 {
 	object->properties = properties;
@@ -1296,6 +1376,12 @@ ZEND_API void object_properties_init_ex(zend_object *object, HashTable *properti
 }
 /* }}} */
 
+/**
+ * @description: 载入对象属性表
+ * @param zend_object *object 对象指针
+ * @param HashTable *properties 属性表
+ * @return: void
+ */
 ZEND_API void object_properties_load(zend_object *object, HashTable *properties) /* {{{ */
 {
     zval *prop, tmp;
