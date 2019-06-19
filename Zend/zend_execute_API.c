@@ -121,6 +121,11 @@ static int clean_non_persistent_class_full(zval *zv) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 初始化zend执行器
+ * @param void
+ * @return: void
+ */
 void init_executor(void) /* {{{ */
 {
 	zend_init_fpu();
@@ -132,10 +137,12 @@ void init_executor(void) /* {{{ */
 	original_sigsegv_handler = signal(SIGSEGV, zend_handle_sigsegv);
 #endif
 
+	//初始化符号表缓存
 	EG(symtable_cache_ptr) = EG(symtable_cache) - 1;
 	EG(symtable_cache_limit) = EG(symtable_cache) + SYMTABLE_CACHE_SIZE - 1;
 	EG(no_extensions) = 0;
 
+	//将编译的函数表和class表，赋值给执行器
 	EG(function_table) = CG(function_table);
 	EG(class_table) = CG(class_table);
 
@@ -144,26 +151,32 @@ void init_executor(void) /* {{{ */
 	EG(error_handling) = EH_NORMAL;
 	EG(flags) = EG_FLAGS_INITIAL;
 
+	//初始化运行栈
 	zend_vm_stack_init();
 
+	//初始化符号表
 	zend_hash_init(&EG(symbol_table), 64, NULL, ZVAL_PTR_DTOR, 0);
 
+	//对扩展列表执行构造函数
 	zend_llist_apply(&zend_extensions, (llist_apply_func_t) zend_extension_activator);
 
+	//初始化已经引入的文件表
 	zend_hash_init(&EG(included_files), 8, NULL, NULL, 0);
 
 	EG(ticks_count) = 0;
 
+	//自定义错误处理与异常处理设为NULL
 	ZVAL_UNDEF(&EG(user_error_handler));
 	ZVAL_UNDEF(&EG(user_exception_handler));
 
 	EG(current_execute_data) = NULL;
 
+	//初始化错误处理，异常处理的运行栈
 	zend_stack_init(&EG(user_error_handlers_error_reporting), sizeof(int));
 	zend_stack_init(&EG(user_error_handlers), sizeof(zval));
 	zend_stack_init(&EG(user_exception_handlers), sizeof(zval));
 
-	zend_objects_store_init(&EG(objects_store), 1024);
+	zend_objects_store_init(&EG(objects_store), 1024);	//初始化对象仓库
 
 	EG(full_tables_cleanup) = 0;
 	EG(vm_interrupt) = 0;
@@ -181,15 +194,21 @@ void init_executor(void) /* {{{ */
 
 	EG(each_deprecation_thrown) = 0;
 
-	EG(active) = 1;
+	EG(active) = 1;	//标记状态为启动
 }
 /* }}} */
 
+/**
+ * @description: 对变量调用析构函数，用于检测变量元素是否移除
+ * @param zval* zv 变量
+ * @return: int 
+ */
 static int zval_call_destructor(zval *zv) /* {{{ */
 {
 	if (Z_TYPE_P(zv) == IS_INDIRECT) {
 		zv = Z_INDIRECT_P(zv);
 	}
+	//如果变量是对象，并且引用计数为1，则返回可移除
 	if (Z_TYPE_P(zv) == IS_OBJECT && Z_REFCOUNT_P(zv) == 1) {
 		return ZEND_HASH_APPLY_REMOVE;
 	} else {
@@ -198,6 +217,11 @@ static int zval_call_destructor(zval *zv) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 指针类型变量
+ * @param zval* zv 变量地址
+ * @return: void
+ */
 static void zend_unclean_zval_ptr_dtor(zval *zv) /* {{{ */
 {
 	if (Z_TYPE_P(zv) == IS_INDIRECT) {
@@ -207,6 +231,13 @@ static void zend_unclean_zval_ptr_dtor(zval *zv) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 抛出异常或错误
+ * @param int fetch_type 获取类型
+ * @param zend_class_entry *exception_ce 异常类指针
+ * @const char *format 参数列表
+ * @return: void
+ */
 static void zend_throw_or_error(int fetch_type, zend_class_entry *exception_ce, const char *format, ...) /* {{{ */
 {
 	va_list va;
@@ -226,11 +257,19 @@ static void zend_throw_or_error(int fetch_type, zend_class_entry *exception_ce, 
 }
 /* }}} */
 
+/**
+ * @description: 停止
+ * @param void 
+ * @return: void
+ */
 void shutdown_destructors(void) /* {{{ */
 {
+	//设置全局变量符号表的析构函数
 	if (CG(unclean_shutdown)) {
 		EG(symbol_table).pDestructor = zend_unclean_zval_ptr_dtor;
 	}
+
+	//清理全局变量符号表
 	zend_try {
 		uint32_t symbols;
 		do {
@@ -240,11 +279,16 @@ void shutdown_destructors(void) /* {{{ */
 		zend_objects_store_call_destructors(&EG(objects_store));
 	} zend_catch {
 		/* if we couldn't destruct cleanly, mark all objects as destructed anyway */
-		zend_objects_store_mark_destructed(&EG(objects_store));
+		zend_objects_store_mark_destructed(&EG(objects_store));	//将对象仓库所有对象编辑为已析构
 	} zend_end_try();
 }
 /* }}} */
 
+/**
+ * @description: 停止执zend行器
+ * @param void
+ * @return: void
+ */
 void shutdown_executor(void) /* {{{ */
 {
 	zend_string *key;
@@ -255,20 +299,24 @@ void shutdown_executor(void) /* {{{ */
 	zend_bool fast_shutdown = is_zend_mm() && !EG(full_tables_cleanup);
 #endif
 
+	//清理打开的文件表
 	zend_try {
 		zend_llist_destroy(&CG(open_files));
 	} zend_end_try();
 
+	//关闭全局资源列表
 	zend_try {
 		zend_close_rsrc_list(&EG(regular_list));
 	} zend_end_try();
 
+	//销毁对象仓库
 	zend_objects_store_free_object_storage(&EG(objects_store), fast_shutdown);
 
 	/* All resources and objects are destroyed. */
 	/* No PHP callback functions may be called after this point. */
 	EG(active) = 0;
 
+	//调用扩展的析构函数，清理扩展信息
 	zend_try {
 		zend_llist_apply(&zend_extensions, (llist_apply_func_t) zend_extension_deactivator);
 	} zend_end_try();
@@ -279,18 +327,24 @@ void shutdown_executor(void) /* {{{ */
 		 * Zend Memory Manager frees memory by its own. We don't have to free
 		 * each allocated block separately.
 		 */
+
+		//清理常量表
 		ZEND_HASH_REVERSE_FOREACH_VAL(EG(zend_constants), zv) {
 			zend_constant *c = Z_PTR_P(zv);
 			if (c->flags & CONST_PERSISTENT) {
 				break;
 			}
 		} ZEND_HASH_FOREACH_END_DEL();
+
+		//清理函数表
 		ZEND_HASH_REVERSE_FOREACH_VAL(EG(function_table), zv) {
 			zend_function *func = Z_PTR_P(zv);
 			if (func->type == ZEND_INTERNAL_FUNCTION) {
 				break;
 			}
 		} ZEND_HASH_FOREACH_END_DEL();
+
+		//清理class表
 		ZEND_HASH_REVERSE_FOREACH_VAL(EG(class_table), zv) {
 			zend_class_entry *ce = Z_PTR_P(zv);
 			if (ce->type == ZEND_INTERNAL_CLASS) {
@@ -298,9 +352,9 @@ void shutdown_executor(void) /* {{{ */
 			}
 		} ZEND_HASH_FOREACH_END_DEL();
 
-		zend_cleanup_internal_classes();
+		zend_cleanup_internal_classes();	//清理内部类
 	} else {
-		zend_hash_graceful_reverse_destroy(&EG(symbol_table));
+		zend_hash_graceful_reverse_destroy(&EG(symbol_table));	//销毁全局变量符号表
 
 #if ZEND_DEBUG
 		if (GC_G(gc_enabled) && !CG(unclean_shutdown)) {
@@ -310,27 +364,34 @@ void shutdown_executor(void) /* {{{ */
 
 		/* remove error handlers before destroying classes and functions,
 		 * so that if handler used some class, crash would not happen */
+		//销毁自定义错误处理
 		if (Z_TYPE(EG(user_error_handler)) != IS_UNDEF) {
 			zval_ptr_dtor(&EG(user_error_handler));
 			ZVAL_UNDEF(&EG(user_error_handler));
 		}
 
+		//销毁自定义异常处理
 		if (Z_TYPE(EG(user_exception_handler)) != IS_UNDEF) {
 			zval_ptr_dtor(&EG(user_exception_handler));
 			ZVAL_UNDEF(&EG(user_exception_handler));
 		}
 
+		//清理自定义错误和异常运行栈
 		zend_stack_clean(&EG(user_error_handlers_error_reporting), NULL, 1);
 		zend_stack_clean(&EG(user_error_handlers), (void (*)(void *))ZVAL_PTR_DTOR, 1);
 		zend_stack_clean(&EG(user_exception_handlers), (void (*)(void *))ZVAL_PTR_DTOR, 1);
 
+		//销毁运行栈
 		zend_vm_stack_destroy();
 
+		//如已完整清理，则清楚：函数表，class表，常量表
 		if (EG(full_tables_cleanup)) {
 			zend_hash_reverse_apply(EG(zend_constants), clean_non_persistent_constant_full);
 			zend_hash_reverse_apply(EG(function_table), clean_non_persistent_function_full);
 			zend_hash_reverse_apply(EG(class_table), clean_non_persistent_class_full);
 		} else {
+
+			//清理常量表
 			ZEND_HASH_REVERSE_FOREACH_STR_KEY_VAL(EG(zend_constants), key, zv) {
 				zend_constant *c = Z_PTR_P(zv);
 				if (c->flags & CONST_PERSISTENT) {
@@ -343,6 +404,8 @@ void shutdown_executor(void) /* {{{ */
 				efree(c);
 				zend_string_release(key);
 			} ZEND_HASH_FOREACH_END_DEL();
+
+			//清理函数表
 			ZEND_HASH_REVERSE_FOREACH_STR_KEY_VAL(EG(function_table), key, zv) {
 				zend_function *func = Z_PTR_P(zv);
 				if (func->type == ZEND_INTERNAL_FUNCTION) {
@@ -351,6 +414,8 @@ void shutdown_executor(void) /* {{{ */
 				destroy_op_array(&func->op_array);
 				zend_string_release(key);
 			} ZEND_HASH_FOREACH_END_DEL();
+
+			//清理class表
 			ZEND_HASH_REVERSE_FOREACH_STR_KEY_VAL(EG(class_table), key, zv) {
 				zend_class_entry *ce = Z_PTR_P(zv);
 				if (ce->type == ZEND_INTERNAL_CLASS) {
@@ -361,25 +426,32 @@ void shutdown_executor(void) /* {{{ */
 			} ZEND_HASH_FOREACH_END_DEL();
 		}
 
+		//清理内部类
 		zend_cleanup_internal_classes();
 
+		//清理全局符号表缓存
 		while (EG(symtable_cache_ptr)>=EG(symtable_cache)) {
 			zend_hash_destroy(*EG(symtable_cache_ptr));
 			FREE_HASHTABLE(*EG(symtable_cache_ptr));
 			EG(symtable_cache_ptr)--;
 		}
 
+		//清理已引入文件表
 		zend_hash_destroy(&EG(included_files));
 
+		//清理自定义错误和异常处理栈
 		zend_stack_destroy(&EG(user_error_handlers_error_reporting));
 		zend_stack_destroy(&EG(user_error_handlers));
 		zend_stack_destroy(&EG(user_exception_handlers));
 		zend_objects_store_destroy(&EG(objects_store));
+
+		//清理自动加载类
 		if (EG(in_autoload)) {
 			zend_hash_destroy(EG(in_autoload));
 			FREE_HASHTABLE(EG(in_autoload));
 		}
 
+		//释放迭代器
 		if (EG(ht_iterators) != EG(ht_iterators_slots)) {
 			efree(EG(ht_iterators));
 		}
