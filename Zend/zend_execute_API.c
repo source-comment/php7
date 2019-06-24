@@ -470,6 +470,11 @@ void shutdown_executor(void) /* {{{ */
 /* }}} */
 
 /* return class name and "::" or "". */
+/**
+ * @description: 获取正在执行的类名
+ * @param char** space 调用方式，""或"::"
+ * @return: char*
+ */
 ZEND_API const char *get_active_class_name(const char **space) /* {{{ */
 {
 	zend_function *func;
@@ -502,6 +507,11 @@ ZEND_API const char *get_active_class_name(const char **space) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取正在执行的函数名
+ * @param void
+ * @return: char* 函数名
+ */
 ZEND_API const char *get_active_function_name(void) /* {{{ */
 {
 	zend_function *func;
@@ -530,6 +540,11 @@ ZEND_API const char *get_active_function_name(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取正在执行的文件名
+ * @param void
+ * @return: char*
+ */
 ZEND_API const char *zend_get_executed_filename(void) /* {{{ */
 {
 	zend_execute_data *ex = EG(current_execute_data);
@@ -545,6 +560,11 @@ ZEND_API const char *zend_get_executed_filename(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取正在执行的文件名
+ * @param void
+ * @return: zend_string*
+ */
 ZEND_API zend_string *zend_get_executed_filename_ex(void) /* {{{ */
 {
 	zend_execute_data *ex = EG(current_execute_data);
@@ -560,6 +580,11 @@ ZEND_API zend_string *zend_get_executed_filename_ex(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取正在执行的行号
+ * @param void
+ * @return: uint32_t
+ */
 ZEND_API uint32_t zend_get_executed_lineno(void) /* {{{ */
 {
 	zend_execute_data *ex = EG(current_execute_data);
@@ -579,6 +604,11 @@ ZEND_API uint32_t zend_get_executed_lineno(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取正在执行的类
+ * @param void 
+ * @return: zend_class_entry*
+ */
 ZEND_API zend_class_entry *zend_get_executed_scope(void) /* {{{ */
 {
 	zend_execute_data *ex = EG(current_execute_data);
@@ -594,18 +624,33 @@ ZEND_API zend_class_entry *zend_get_executed_scope(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 是否正在执行函数调用
+ * @param void
+ * @return: zend_bool
+ */
 ZEND_API zend_bool zend_is_executing(void) /* {{{ */
 {
 	return EG(current_execute_data) != 0;
 }
 /* }}} */
 
+/**
+ * @description: 变量析构函数
+ * @param zval *zval_ptr 变量指针
+ * @return: void
+ */
 ZEND_API void _zval_ptr_dtor(zval *zval_ptr ZEND_FILE_LINE_DC) /* {{{ */
 {
 	i_zval_ptr_dtor(zval_ptr ZEND_FILE_LINE_RELAY_CC);
 }
 /* }}} */
 
+/**
+ * @description: 内部指针变量析构函数
+ * @param zval *zval_ptr 变量指针
+ * @return: void
+ */
 ZEND_API void _zval_internal_ptr_dtor(zval *zval_ptr ZEND_FILE_LINE_DC) /* {{{ */
 {
 	if (Z_REFCOUNTED_P(zval_ptr)) {
@@ -617,6 +662,12 @@ ZEND_API void _zval_internal_ptr_dtor(zval *zval_ptr ZEND_FILE_LINE_DC) /* {{{ *
 }
 /* }}} */
 
+/**
+ * @description: 更新常量
+ * @param zval *p 常量
+ * @param zend_class_entry *scope 调用类
+ * @return: int
+ */
 ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 {
 	zval *const_value;
@@ -631,6 +682,7 @@ ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 		inline_change = (Z_TYPE_FLAGS_P(p) & IS_TYPE_REFCOUNTED) != 0;
 		SEPARATE_ZVAL_NOREF(p);
 		MARK_CONSTANT_VISITED(p);
+
 		if (Z_CONST_FLAGS_P(p) & IS_CONSTANT_CLASS) {
 			ZEND_ASSERT(EG(current_execute_data));
 			if (inline_change) {
@@ -642,10 +694,14 @@ ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 				ZVAL_EMPTY_STRING(p);
 			}
 		} else if (UNEXPECTED((const_value = zend_get_constant_ex(Z_STR_P(p), scope, Z_CONST_FLAGS_P(p))) == NULL)) {
+			/**如果常量为NULL */
+
+			//有异常
 			if (UNEXPECTED(EG(exception))) {
 				RESET_CONSTANT_VISITED(p);
 				return FAILURE;
 			} else if ((colon = (char*)zend_memrchr(Z_STRVAL_P(p), ':', Z_STRLEN_P(p)))) {
+				//类常量为定义，抛出错误
 				zend_throw_error(NULL, "Undefined class constant '%s'", Z_STRVAL_P(p));
 				RESET_CONSTANT_VISITED(p);
 				return FAILURE;
@@ -659,11 +715,14 @@ ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 					char *actual = Z_STRVAL_P(p);
 					size_t actual_len = Z_STRLEN_P(p);
 					char *slash = (char *) zend_memrchr(actual, '\\', actual_len);
+
+					//如果用了命名空间，则名字跳过命名空间
 					if (slash) {
 						actual = slash + 1;
 						actual_len -= (actual - Z_STRVAL_P(p));
 					}
 
+					//如有异常则输出，同时输出警告
 					zend_error(E_WARNING, "Use of undefined constant %s - assumed '%s' (this will throw an Error in a future version of PHP)", actual, actual);
 					if (EG(exception)) {
 						RESET_CONSTANT_VISITED(p);
@@ -691,6 +750,7 @@ ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 			zval_opt_copy_ctor(p);
 		}
 	} else if (Z_TYPE_P(p) == IS_CONSTANT_AST) {
+		//语法树节点处理
 		zval tmp;
 
 		inline_change = (Z_TYPE_FLAGS_P(p) & IS_TYPE_REFCOUNTED) != 0;
@@ -706,12 +766,27 @@ ZEND_API int zval_update_constant_ex(zval *p, zend_class_entry *scope) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 更新常量信息
+ * @param zval* pp 常量指针
+ * @return: int
+ */
 ZEND_API int zval_update_constant(zval *pp) /* {{{ */
 {
 	return zval_update_constant_ex(pp, EG(current_execute_data) ? zend_get_executed_scope() : CG(active_class_entry));
 }
 /* }}} */
 
+/**
+ * @description: 调用函数
+ * @param zval* object 对象
+ * @param zval* function_name 函数名
+ * @param zval* retval_ptr 返回值
+ * @param uint32_t param_count 参数个数
+ * @param zval[] params 参数列表
+ * @param int no_separation 是否分离
+ * @return: int
+ */
 int _call_user_function_ex(zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[], int no_separation) /* {{{ */
 {
 	zend_fcall_info fci;
@@ -728,6 +803,12 @@ int _call_user_function_ex(zval *object, zval *function_name, zval *retval_ptr, 
 }
 /* }}} */
 
+/**
+ * @description: 函数调用
+ * @param zend_fcall_info *fci 函数调用相关信息
+ * @param zend_fcall_info_cache *fci_cache 函数调用缓存
+ * @return: int
+ */
 int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /* {{{ */
 {
 	uint32_t i;
@@ -735,7 +816,7 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 	zend_fcall_info_cache fci_cache_local;
 	zend_function *func;
 
-	ZVAL_UNDEF(fci->retval);
+	ZVAL_UNDEF(fci->retval);	//先设置返回值为IS_UNDEF
 
 	if (!EG(active)) {
 		return FAILURE; /* executor is already inactive */
