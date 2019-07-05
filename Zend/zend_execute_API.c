@@ -893,12 +893,15 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 	}
 
 	func = fci_cache->function_handler;
+	//如果函数是静态函数。
 	fci->object = (func->common.fn_flags & ZEND_ACC_STATIC) ?
 		NULL : fci_cache->object;
 
+	//函数压栈
 	call = zend_vm_stack_push_call_frame(ZEND_CALL_TOP_FUNCTION | ZEND_CALL_DYNAMIC,
 		func, fci->param_count, fci_cache->called_scope, fci->object);
 
+	//是否启用
 	if (UNEXPECTED(func->common.fn_flags & ZEND_ACC_DEPRECATED)) {
 		zend_error(E_DEPRECATED, "Function %s%s%s() is deprecated",
 			func->common.scope ? ZSTR_VAL(func->common.scope->name) : "",
@@ -913,6 +916,7 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 		}
 	}
 
+	//函数参数处理
 	for (i=0; i<fci->param_count; i++) {
 		zval *param;
 		zval *arg = &fci->params[i];
@@ -953,6 +957,7 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 		ZVAL_COPY(param, arg);
 	}
 
+	//回调函数
 	if (UNEXPECTED(func->op_array.fn_flags & ZEND_ACC_CLOSURE)) {
 		uint32_t call_info;
 
@@ -965,6 +970,7 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 		ZEND_ADD_CALL_FLAG(call, call_info);
 	}
 
+	//用户自定义函数
 	if (func->type == ZEND_USER_FUNCTION) {
 		int call_via_handler = (func->common.fn_flags & ZEND_ACC_CALL_VIA_TRAMPOLINE) != 0;
 		const zend_op *current_opline_before_exception = EG(opline_before_exception);
@@ -977,6 +983,7 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 			fci_cache->initialized = 0;
 		}
 	} else if (func->type == ZEND_INTERNAL_FUNCTION) {
+		//内部函数
 		int call_via_handler = (func->common.fn_flags & ZEND_ACC_CALL_VIA_TRAMPOLINE) != 0;
 		ZVAL_NULL(fci->retval);
 		call->prev_execute_data = EG(current_execute_data);
@@ -1045,6 +1052,13 @@ int zend_call_function(zend_fcall_info *fci, zend_fcall_info_cache *fci_cache) /
 }
 /* }}} */
 
+/**
+ * @description: 从类符号表中查找类
+ * @param zend_string* name 类名
+ * @param zval* key 符号表key
+ * @param int use_autoload 是否使用自动加载
+ * @return: 
+ */
 ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *key, int use_autoload) /* {{{ */
 {
 	zend_class_entry *ce = NULL;
@@ -1054,6 +1068,7 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 	zend_fcall_info fcall_info;
 	zend_fcall_info_cache fcall_cache;
 
+	//如果用key则用key查找，否则用类名查找
 	if (key) {
 		lc_name = Z_STR_P(key);
 	} else {
@@ -1069,6 +1084,7 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 		}
 	}
 
+	//找到则返回
 	ce = zend_hash_find_ptr(EG(class_table), lc_name);
 	if (ce) {
 		if (!key) {
@@ -1087,11 +1103,13 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 		return NULL;
 	}
 
+	//如果使用自动加载
 	if (!EG(autoload_func)) {
 		zend_function *func = zend_hash_find_ptr(EG(function_table), ZSTR_KNOWN(ZEND_STR_MAGIC_AUTOLOAD));
 		if (func) {
 			EG(autoload_func) = func;
 		} else {
+			//未定义加载函数，返回NULL
 			if (!key) {
 				zend_string_release(lc_name);
 			}
@@ -1106,11 +1124,13 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 		return NULL;
 	}
 
+	//初始化自动加载表
 	if (EG(in_autoload) == NULL) {
 		ALLOC_HASHTABLE(EG(in_autoload));
 		zend_hash_init(EG(in_autoload), 8, NULL, NULL, 0);
 	}
 
+	//以类名为key，增加一个空元素到自动加载表
 	if (zend_hash_add_empty_element(EG(in_autoload), lc_name) == NULL) {
 		if (!key) {
 			zend_string_release(lc_name);
@@ -1126,6 +1146,7 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 		ZVAL_STR_COPY(&args[0], name);
 	}
 
+	//设置自动加载函数的调用结构信息
 	fcall_info.size = sizeof(fcall_info);
 	ZVAL_STR_COPY(&fcall_info.function_name, EG(autoload_func)->common.function_name);
 	fcall_info.retval = &local_retval;
@@ -1141,6 +1162,7 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 	fcall_cache.object = NULL;
 
 	zend_exception_save();
+	//执行自动加载函数
 	if ((zend_call_function(&fcall_info, &fcall_cache) == SUCCESS) && !EG(exception)) {
 		ce = zend_hash_find_ptr(EG(class_table), lc_name);
 	}
@@ -1160,12 +1182,22 @@ ZEND_API zend_class_entry *zend_lookup_class_ex(zend_string *name, const zval *k
 }
 /* }}} */
 
+/**
+ * @description: 查找类
+ * @param zend_string* name 类名
+ * @return: zend_class_ce*
+ */
 ZEND_API zend_class_entry *zend_lookup_class(zend_string *name) /* {{{ */
 {
 	return zend_lookup_class_ex(name, NULL, 1);
 }
 /* }}} */
 
+/**
+ * @description: 返回调用的类 
+ * @param zend_execute_data* ex 当前执行的数据（作用域）
+ * @return: zend_class_entry*
+ */
 ZEND_API zend_class_entry *zend_get_called_scope(zend_execute_data *ex) /* {{{ */
 {
 	while (ex) {
@@ -1184,6 +1216,11 @@ ZEND_API zend_class_entry *zend_get_called_scope(zend_execute_data *ex) /* {{{ *
 }
 /* }}} */
 
+/**
+ * @description: 获取当前执行的对象
+ * @param zend_execute_data* 当前执行的数据（作用域）
+ * @return: zend_object*
+ */
 ZEND_API zend_object *zend_get_this_object(zend_execute_data *ex) /* {{{ */
 {
 	while (ex) {
@@ -1200,6 +1237,14 @@ ZEND_API zend_object *zend_get_this_object(zend_execute_data *ex) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 执行字符串代码 例如eval函数
+ * @param char* str 字符串内容
+ * @param size_t str_len 字符串长度
+ * @param zval* retval_ptr 返回值
+ * @param char* string_name 字符串名
+ * @return: int
+ */
 ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char *string_name) /* {{{ */
 {
 	zval pv;
@@ -1219,11 +1264,13 @@ ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char
 
 	/*printf("Evaluating '%s'\n", pv.value.str.val);*/
 
+	//编译代码
 	original_compiler_options = CG(compiler_options);
 	CG(compiler_options) = ZEND_COMPILE_DEFAULT_FOR_EVAL;
 	new_op_array = zend_compile_string(&pv, string_name);
 	CG(compiler_options) = original_compiler_options;
 
+	//执行编译后的op_array
 	if (new_op_array) {
 		zval local_retval;
 
@@ -1231,6 +1278,7 @@ ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char
 
 		new_op_array->scope = zend_get_executed_scope();
 
+		//执行代码
 		zend_try {
 			ZVAL_UNDEF(&local_retval);
 			zend_execute(new_op_array, &local_retval);
@@ -1240,6 +1288,7 @@ ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char
 			zend_bailout();
 		} zend_end_try();
 
+		//设置返回值
 		if (Z_TYPE(local_retval) != IS_UNDEF) {
 			if (retval_ptr) {
 				ZVAL_COPY_VALUE(retval_ptr, &local_retval);
@@ -1252,6 +1301,7 @@ ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char
 			}
 		}
 
+		//销毁op_array
 		EG(no_extensions)=0;
 		destroy_op_array(new_op_array);
 		efree_size(new_op_array, sizeof(zend_op_array));
@@ -1259,17 +1309,34 @@ ZEND_API int zend_eval_stringl(char *str, size_t str_len, zval *retval_ptr, char
 	} else {
 		retval = FAILURE;
 	}
+
 	zval_dtor(&pv);
 	return retval;
 }
 /* }}} */
 
+/**
+ * @description: 执行字符串代码 例如eval函数
+ * @param char* str 字符串内容
+ * @param zval* retval_ptr 返回值
+ * @param char* string_name 字符串名
+ * @return: int
+ */
 ZEND_API int zend_eval_string(char *str, zval *retval_ptr, char *string_name) /* {{{ */
 {
 	return zend_eval_stringl(str, strlen(str), retval_ptr, string_name);
 }
 /* }}} */
 
+/**
+ * @description: 执行字符串代码 例如eval函数
+ * @param char* str 字符串内容
+ * @param size_t str_len 字符串长度
+ * @param zval* retval_ptr 返回值
+ * @param char* string_name 字符串名
+ * @param int handle_exceptions 是否抛出异常
+ * @return: int
+ */
 ZEND_API int zend_eval_stringl_ex(char *str, size_t str_len, zval *retval_ptr, char *string_name, int handle_exceptions) /* {{{ */
 {
 	int result;
@@ -1283,12 +1350,26 @@ ZEND_API int zend_eval_stringl_ex(char *str, size_t str_len, zval *retval_ptr, c
 }
 /* }}} */
 
+/**
+ * @description: 执行字符串代码 例如eval函数
+ * @param char* str 字符串内容
+ * @param zval* retval_ptr 返回值
+ * @param char* string_name 字符串名
+ * @param int handle_exceptions 是否抛出异常
+ * @return: int
+ */
 ZEND_API int zend_eval_string_ex(char *str, zval *retval_ptr, char *string_name, int handle_exceptions) /* {{{ */
 {
 	return zend_eval_stringl_ex(str, strlen(str), retval_ptr, string_name, handle_exceptions);
 }
 /* }}} */
 
+/**
+ * @description: 设置超时时间
+ * @param zend_long seconds 秒数
+ * @param int reset_signals 重置信号
+ * @return: 
+ */
 static void zend_set_timeout_ex(zend_long seconds, int reset_signals);
 
 ZEND_API ZEND_NORETURN void zend_timeout(int dummy) /* {{{ */
@@ -1316,6 +1397,7 @@ ZEND_API ZEND_NORETURN void zend_timeout(int dummy) /* {{{ */
 /* }}} */
 
 #ifndef ZEND_WIN32
+//超时处理函数
 static void zend_timeout_handler(int dummy) /* {{{ */
 {
 #ifndef ZTS
@@ -1472,6 +1554,12 @@ static void zend_set_timeout_ex(zend_long seconds, int reset_signals) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 设置超时时间
+ * @param zend_long seconds 超时秒数
+ * @param int reset_signals 重置信号
+ * @return: 
+ */
 void zend_set_timeout(zend_long seconds, int reset_signals) /* {{{ */
 {
 
@@ -1481,6 +1569,7 @@ void zend_set_timeout(zend_long seconds, int reset_signals) /* {{{ */
 }
 /* }}} */
 
+//取消超时时间
 void zend_unset_timeout(void) /* {{{ */
 {
 #ifdef ZEND_WIN32
@@ -1513,6 +1602,12 @@ void zend_unset_timeout(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 获取类名
+ * @param zend_string *class_name 类名
+ * @param int fetch_type 获取类型
+ * @return: zend_class_entry*
+ */
 zend_class_entry *zend_fetch_class(zend_string *class_name, int fetch_type) /* {{{ */
 {
 	zend_class_entry *ce, *scope;
@@ -1520,12 +1615,14 @@ zend_class_entry *zend_fetch_class(zend_string *class_name, int fetch_type) /* {
 
 check_fetch_type:
 	switch (fetch_sub_type) {
+		//self
 		case ZEND_FETCH_CLASS_SELF:
 			scope = zend_get_executed_scope();
 			if (UNEXPECTED(!scope)) {
 				zend_throw_or_error(fetch_type, NULL, "Cannot access self:: when no class scope is active");
 			}
 			return scope;
+		//parent
 		case ZEND_FETCH_CLASS_PARENT:
 			scope = zend_get_executed_scope();
 			if (UNEXPECTED(!scope)) {
@@ -1536,6 +1633,7 @@ check_fetch_type:
 				zend_throw_or_error(fetch_type, NULL, "Cannot access parent:: when current class scope has no parent");
 			}
 			return scope->parent;
+		//static
 		case ZEND_FETCH_CLASS_STATIC:
 			ce = zend_get_called_scope(EG(current_execute_data));
 			if (UNEXPECTED(!ce)) {
@@ -1552,6 +1650,7 @@ check_fetch_type:
 			break;
 	}
 
+	//是否自动加载
 	if (fetch_type & ZEND_FETCH_CLASS_NO_AUTOLOAD) {
 		return zend_lookup_class_ex(class_name, NULL, 0);
 	} else if ((ce = zend_lookup_class_ex(class_name, NULL, 1)) == NULL) {
@@ -1570,6 +1669,13 @@ check_fetch_type:
 }
 /* }}} */
 
+/**
+ * @description: 根据名字获取类
+ * @param zend_string* class_name 类名
+ * @param zval *key 符号表key
+ * @param int fetch_type 获取类型
+ * @return: zend_class_entry*
+ */
 zend_class_entry *zend_fetch_class_by_name(zend_string *class_name, const zval *key, int fetch_type) /* {{{ */
 {
 	zend_class_entry *ce;
@@ -1606,6 +1712,12 @@ typedef struct _zend_abstract_info {
 	int ctor;
 } zend_abstract_info;
 
+/**
+ * @description: 验证抽象方法
+ * @param zend_function *fn 方法指针
+ * @param zend_abstract_info 抽象信息
+ * @return: void
+ */
 static void zend_verify_abstract_class_function(zend_function *fn, zend_abstract_info *ai) /* {{{ */
 {
 	if (fn->common.fn_flags & ZEND_ACC_ABSTRACT) {
@@ -1626,6 +1738,11 @@ static void zend_verify_abstract_class_function(zend_function *fn, zend_abstract
 }
 /* }}} */
 
+/**
+ * @description: 验证抽象类
+ * @param zend_class_entry *ce 类指针
+ * @return: void
+ */
 void zend_verify_abstract_class(zend_class_entry *ce) /* {{{ */
 {
 	zend_function *func;
@@ -1651,12 +1768,21 @@ void zend_verify_abstract_class(zend_class_entry *ce) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 从全局符号表中删除变量
+ * @param zend_string* name 变量名
+ * @return: int
+ */
 ZEND_API int zend_delete_global_variable(zend_string *name) /* {{{ */
 {
     return zend_hash_del_ind(&EG(symbol_table), name);
 }
 /* }}} */
 
+/**
+ * @description: 重建全局符号表
+ * @return: zend_array*
+ */
 ZEND_API zend_array *zend_rebuild_symbol_table(void) /* {{{ */
 {
 	zend_execute_data *ex;
@@ -1706,6 +1832,11 @@ ZEND_API zend_array *zend_rebuild_symbol_table(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 附加全局符号表（函数调动用到）
+ * @param zend_execute_data* execute_data 执行数据）
+ * @return: void
+ */
 ZEND_API void zend_attach_symbol_table(zend_execute_data *execute_data) /* {{{ */
 {
 	zend_op_array *op_array = &execute_data->func->op_array;
@@ -1741,6 +1872,11 @@ ZEND_API void zend_attach_symbol_table(zend_execute_data *execute_data) /* {{{ *
 }
 /* }}} */
 
+/**
+ * @description: 取消附加全局符号表。（函数调动用到）
+ * @param zend_execute_data* execute_data 执行数据）
+ * @return: void
+ */
 ZEND_API void zend_detach_symbol_table(zend_execute_data *execute_data) /* {{{ */
 {
 	zend_op_array *op_array = &execute_data->func->op_array;
