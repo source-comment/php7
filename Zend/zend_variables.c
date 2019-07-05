@@ -28,6 +28,7 @@
 #include "zend_constants.h"
 #include "zend_list.h"
 
+//变量析构函数
 ZEND_API void ZEND_FASTCALL _zval_dtor_func(zend_refcounted *p ZEND_FILE_LINE_DC)
 {
 	switch (GC_TYPE(p)) {
@@ -75,6 +76,7 @@ ZEND_API void ZEND_FASTCALL _zval_dtor_func(zend_refcounted *p ZEND_FILE_LINE_DC
 	}
 }
 
+//内部变量析构函数
 ZEND_API void _zval_internal_dtor(zval *zvalue ZEND_FILE_LINE_DC)
 {
 	switch (Z_TYPE_P(zvalue)) {
@@ -106,6 +108,7 @@ ZEND_API void _zval_internal_dtor(zval *zvalue ZEND_FILE_LINE_DC)
 	}
 }
 
+//内部引用变量析构函数
 ZEND_API void _zval_internal_dtor_for_ptr(zval *zvalue ZEND_FILE_LINE_DC)
 {
 	switch (Z_TYPE_P(zvalue)) {
@@ -163,6 +166,7 @@ ZEND_API void zval_add_ref_unref(zval *p)
 	}
 }
 
+//变量复制函数
 ZEND_API void ZEND_FASTCALL _zval_copy_ctor_func(zval *zvalue ZEND_FILE_LINE_DC)
 {
 	if (EXPECTED(Z_TYPE_P(zvalue) == IS_ARRAY)) {
