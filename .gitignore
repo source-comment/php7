@@ -234,3 +234,6 @@ win32/wsyslog.h
 
 #ide
 .vscode
+
+# macOS
+.DS_Store
