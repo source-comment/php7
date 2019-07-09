@@ -184,6 +184,11 @@ const opt_struct OPTIONS[] = {
 	{'-', 0, NULL} /* end of args */
 };
 
+/**
+ * @description: 打印模块名字
+ * @param zval* element 模块信息
+ * @return: int
+ */
 static int print_module_info(zval *element) /* {{{ */
 {
 	zend_module_entry *module = (zend_module_entry*)Z_PTR_P(element);
@@ -192,6 +197,12 @@ static int print_module_info(zval *element) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 比较模块名字
+ * @param void* a 模块a
+ * @param void* b 模块b
+ * @return: int
+ */
 static int module_name_cmp(const void *a, const void *b) /* {{{ */
 {
 	Bucket *f = (Bucket *) a;
@@ -202,6 +213,11 @@ static int module_name_cmp(const void *a, const void *b) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 打印已加载模块
+ * @param void
+ * @return: void
+ */
 static void print_modules(void) /* {{{ */
 {
 	HashTable sorted_registry;
@@ -214,6 +230,12 @@ static void print_modules(void) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 打印扩展名字
+ * @param zend_extension* ext 扩展指针
+ * @param void *arg 参数
+ * @return: int
+ */
 static int print_extension_info(zend_extension *ext, void *arg) /* {{{ */
 {
 	php_printf("%s\n", ext->name);
@@ -221,6 +243,12 @@ static int print_extension_info(zend_extension *ext, void *arg) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 比较扩展的名字
+ * @param zend_llist_element** f 扩展1
+ * @param zend_llist_element** s 扩展2
+ * @return: 
+ */
 static int extension_name_cmp(const zend_llist_element **f, const zend_llist_element **s) /* {{{ */
 {
 	zend_extension *fe = (zend_extension*)(*f)->data;
@@ -229,6 +257,11 @@ static int extension_name_cmp(const zend_llist_element **f, const zend_llist_ele
 }
 /* }}} */
 
+/**
+ * @description: 打印加载的扩展名
+ * @param void
+ * @return: void
+ */
 static void print_extensions(void) /* {{{ */
 {
 	zend_llist sorted_exts;
@@ -248,6 +281,11 @@ static void print_extensions(void) /* {{{ */
 #define STDERR_FILENO 2
 #endif
 
+/**
+ * @description: 监控描述符的IO （cli模式默认为标准输出控制台）
+ * @param php_socket_t fd 描述符，
+ * @return: int
+ */
 static inline int sapi_cli_select(php_socket_t fd)
 {
 	fd_set wfd, dfd;
@@ -267,6 +305,12 @@ static inline int sapi_cli_select(php_socket_t fd)
 	return ret != -1;
 }
 
+/**
+ * @description: 写入字符串到标准输出
+ * @param char* str 字符串内容
+ * @param size_t str_length 字符串长度
+ * @return: size_t
+ */
 PHP_CLI_API size_t sapi_cli_single_write(const char *str, size_t str_length) /* {{{ */
 {
 #ifdef PHP_WRITE_STDOUT
@@ -296,6 +340,12 @@ PHP_CLI_API size_t sapi_cli_single_write(const char *str, size_t str_length) /* 
 }
 /* }}} */
 
+/**
+ * @description: 写入字符串到标准输出(如果设置回调函数，则使用函数输出)
+ * @param char* str 字符串内容
+ * @param size_t str_length 字符串长度
+ * @return: size_t
+ */
 static size_t sapi_cli_ub_write(const char *str, size_t str_length) /* {{{ */
 {
 	const char *ptr = str;
@@ -331,6 +381,11 @@ static size_t sapi_cli_ub_write(const char *str, size_t str_length) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 刷新输出缓冲区
+ * @param void* server_context 
+ * @return: void
+ */
 static void sapi_cli_flush(void *server_context) /* {{{ */
 {
 	/* Ignore EBADF here, it's caused by the fact that STDIN/STDOUT/STDERR streams
@@ -347,6 +402,11 @@ static void sapi_cli_flush(void *server_context) /* {{{ */
 static char *php_self = "";
 static char *script_filename = "";
 
+/**
+ * @description: 注册环境变量
+ * @param zval* track_vars_array 服务器环境变量
+ * @return: void
+ */
 static void sapi_cli_register_variables(zval *track_vars_array) /* {{{ */
 {
 	size_t len;
@@ -381,6 +441,12 @@ static void sapi_cli_register_variables(zval *track_vars_array) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 打印错误信息到标准错误输出设备
+ * @param char* message 错误信息
+ * @param int syslog_type_int
+ * @return: 
+ */
 static void sapi_cli_log_message(char *message, int syslog_type_int) /* {{{ */
 {
 	fprintf(stderr, "%s\n", message);
@@ -390,6 +456,11 @@ static void sapi_cli_log_message(char *message, int syslog_type_int) /* {{{ */
 }
 /* }}} */
 
+/**
+ * @description: 停止
+ * @param void
+ * @return: int
+ */
 static int sapi_cli_deactivate(void) /* {{{ */
 {
 	fflush(stdout);
@@ -401,18 +472,21 @@ static int sapi_cli_deactivate(void) /* {{{ */
 }
 /* }}} */
 
+//读取cookies cli不需要实际处理
 static char* sapi_cli_read_cookies(void) /* {{{ */
 {
 	return NULL;
 }
 /* }}} */
 
+//cli模式的header之handler，cli不需要实际处理
 static int sapi_cli_header_handler(sapi_header_struct *h, sapi_header_op_enum op, sapi_headers_struct *s) /* {{{ */
 {
 	return 0;
 }
 /* }}} */
 
+//发送headers，cli不需要实际处理
 static int sapi_cli_send_headers(sapi_headers_struct *sapi_headers) /* {{{ */
 {
 	/* We do nothing here, this function is needed to prevent that the fallback
@@ -421,11 +495,17 @@ static int sapi_cli_send_headers(sapi_headers_struct *sapi_headers) /* {{{ */
 }
 /* }}} */
 
+//发送header，cli不需要实际处理
 static void sapi_cli_send_header(sapi_header_struct *sapi_header, void *server_context) /* {{{ */
 {
 }
 /* }}} */
 
+/**
+ * @description: 启动cli模式
+ * @param sapi_module_struct* sapi_module 运行模式信息
+ * @return: int
+ */
 static int php_cli_startup(sapi_module_struct *sapi_module) /* {{{ */
 {
 	if (php_module_startup(sapi_module, NULL, 0)==FAILURE) {
@@ -442,6 +522,11 @@ static int php_cli_startup(sapi_module_struct *sapi_module) /* {{{ */
 	ZVAL_NEW_STR(&tmp, zend_string_init(value, sizeof(value)-1, 1));\
 	zend_hash_str_update(configuration_hash, name, sizeof(name)-1, &tmp);\
 
+/**
+ * @description: 设置cli模式运行的默认配置
+ * @param HashTable* configuration_hash配置信息表
+ * @return: voi
+ */
 static void sapi_cli_ini_defaults(HashTable *configuration_hash)
 {
 	zval tmp;
@@ -499,6 +584,7 @@ static const zend_function_entry additional_functions[] = {
 };
 
 /* {{{ php_cli_usage
+ * 打印cli模式帮助信息
  */
 static void php_cli_usage(char *argv0)
 {
@@ -563,6 +649,7 @@ static void php_cli_usage(char *argv0)
 
 static php_stream *s_in_process = NULL;
 
+//注册cli模式专用标准输入输出常量
 static void cli_register_file_handles(void) /* {{{ */
 {
 	php_stream *s_in, *s_out, *s_err;
@@ -612,6 +699,10 @@ static void cli_register_file_handles(void) /* {{{ */
 static const char *param_mode_conflict = "Either execute direct code, process stdin or use a file.\n";
 
 /* {{{ cli_seek_file_begin
+ * @descrption 查找php文件开始，以支持"!#xxxx/php"开头的php脚本
+ * @param zend_file_handle* file_handle 文件句柄结构
+ * @param char* script_file php脚本文件名
+ * @param int* lineno 开始行号
  */
 static int cli_seek_file_begin(zend_file_handle *file_handle, char *script_file, int *lineno)
 {
@@ -661,6 +752,12 @@ BOOL WINAPI php_cli_win32_ctrl_handler(DWORD sig)
 #endif
 /*}}}*/
 
+/**
+ * @description: 执行cli命令
+ * @param int argc 参数数量
+ * @param char ** argv 参数数组
+ * @return: int
+ */
 static int do_cli(int argc, char **argv) /* {{{ */
 {
 	int c;
@@ -683,9 +780,10 @@ static int do_cli(int argc, char **argv) /* {{{ */
 
 		CG(in_compilation) = 0; /* not initialized but needed for several options */
 
+		//解析命令参数
 		while ((c = php_getopt(argc, argv, OPTIONS, &php_optarg, &php_optind, 0, 2)) != -1) {
 			switch (c) {
-
+			// -i 打印phpinfo
 			case 'i': /* php info & quit */
 				if (php_request_startup()==FAILURE) {
 					goto err;
@@ -696,6 +794,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				exit_status = (c == '?' && argc > 1 && !strchr(argv[1],  c));
 				goto out;
 
+			//-v 打印php、zend版本号
 			case 'v': /* show php version & quit */
 				php_printf("PHP %s (%s) (built: %s %s) ( %s)\nCopyright (c) 1997-2018 The PHP Group\n%s",
 					PHP_VERSION, cli_sapi_module.name, __DATE__, __TIME__,
@@ -723,7 +822,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				);
 				sapi_deactivate();
 				goto out;
-
+			//-m 打印已加载的php扩展与zend扩展
 			case 'm': /* list compiled in modules */
 				if (php_request_startup()==FAILURE) {
 					goto err;
@@ -750,7 +849,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 		php_optarg = orig_optarg;
 		while ((c = php_getopt(argc, argv, OPTIONS, &php_optarg, &php_optind, 0, 2)) != -1) {
 			switch (c) {
-
+			//-a 交互模式，类似python的交互命令行模式
 			case 'a':	/* interactive mode */
 				if (!interactive) {
 					if (behavior != PHP_MODE_STANDARD) {
@@ -780,6 +879,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				script_file = php_optarg;
 				break;
 
+			//-f 解析执行文件
 			case 'f': /* parse file */
 				if (behavior == PHP_MODE_CLI_DIRECT || behavior == PHP_MODE_PROCESS_STDIN) {
 					param_error = param_mode_conflict;
@@ -790,7 +890,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				}
 				script_file = php_optarg;
 				break;
-
+			//-f 语法检测
 			case 'l': /* syntax check mode */
 				if (behavior != PHP_MODE_STANDARD) {
 					break;
@@ -802,6 +902,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				/* This is default so NOP */
 				break;
 
+			//-r 直接解析执行代码
 			case 'r': /* run code from command line */
 				if (behavior == PHP_MODE_CLI_DIRECT) {
 					if (exec_direct || script_file) {
@@ -858,6 +959,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				exec_end=php_optarg;
 				break;
 
+			//-s php源码加高亮标签
 			case 's': /* generate highlighted HTML from source */
 				if (behavior == PHP_MODE_CLI_DIRECT || behavior == PHP_MODE_PROCESS_STDIN) {
 					param_error = "Source highlighting only works for files.\n";
@@ -979,6 +1081,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 		argv[php_optind-1] = (char*)file_handle.filename;
 		SG(request_info).argv=argv+php_optind-1;
 
+		//PHP请求启动（一系列启动，初始化操作）
 		if (php_request_startup()==FAILURE) {
 			*arg_excp = arg_free;
 			fclose(file_handle.handle.fp);
@@ -1005,14 +1108,17 @@ static int do_cli(int argc, char **argv) /* {{{ */
 				cli_register_file_handles();
 			}
 
+			//交互模式，使用shell回调函数
 			if (interactive && cli_shell_callbacks.cli_shell_run) {
 				exit_status = cli_shell_callbacks.cli_shell_run();
 			} else {
+				//否则直接解析执行文件
 				php_execute_script(&file_handle);
 				exit_status = EG(exit_status);
 			}
 			break;
 		case PHP_MODE_LINT:
+			//语法检查
 			exit_status = php_lint_script(&file_handle);
 			if (exit_status==SUCCESS) {
 				zend_printf("No syntax errors detected in %s\n", file_handle.filename);
@@ -1027,6 +1133,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 			goto out;
 			break;
 		case PHP_MODE_HIGHLIGHT:
+			//语法高亮，给php源码打上高亮html标签
 			{
 				zend_syntax_highlighter_ini syntax_highlighter_ini;
 
@@ -1038,6 +1145,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 			}
 			break;
 		case PHP_MODE_CLI_DIRECT:
+			//-r 直接解释执行代码
 			cli_register_file_handles();
 			if (zend_eval_string_ex(exec_direct, NULL, "Command line code", 1) == FAILURE) {
 				exit_status=254;
@@ -1175,6 +1283,7 @@ static int do_cli(int argc, char **argv) /* {{{ */
 
 out:
 	if (request_started) {
+		//关闭php请求
 		php_request_shutdown((void *) 0);
 	}
 	if (translated_path) {
@@ -1185,8 +1294,9 @@ out:
 	}
 	return exit_status;
 err:
+	//关闭sapi
 	sapi_deactivate();
-	zend_ini_deactivate();
+	zend_ini_deactivate();	//设置配置表为无效配置
 	exit_status = 1;
 	goto out;
 }
@@ -1270,7 +1380,7 @@ int main(int argc, char *argv[])
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
 
-	zend_signal_startup();
+	zend_signal_startup();	//注册启动信号处理器
 
 #ifdef PHP_WIN32
 	_fmode = _O_BINARY;			/*sets default for file streams to binary */
@@ -1282,15 +1392,18 @@ int main(int argc, char *argv[])
 	while ((c = php_getopt(argc, argv, OPTIONS, &php_optarg, &php_optind, 0, 2))!=-1) {
 		switch (c) {
 			case 'c':
+				//应用配置文件或配置文件目录
 				if (ini_path_override) {
 					free(ini_path_override);
 				}
  				ini_path_override = strdup(php_optarg);
 				break;
 			case 'n':
+				//不应用配置文件
 				ini_ignore = 1;
 				break;
 			case 'd': {
+				//应用命令行配置项
 				/* define ini entries on command line */
 				size_t len = strlen(php_optarg);
 				char *val;
@@ -1323,13 +1436,14 @@ int main(int argc, char *argv[])
 			}
 #ifndef PHP_CLI_WIN32_NO_CONSOLE
 			case 'S':
+				//使用cli内置mini的web服务器
 				sapi_module = &cli_server_sapi_module;
 				cli_server_sapi_module.additional_functions = server_additional_functions;
 				break;
 #endif
 			case 'h': /* help & quit */
 			case '?':
-				php_cli_usage(argv[0]);
+				php_cli_usage(argv[0]);	//打印帮助信息）
 				goto out;
 			case 'i': case 'v': case 'm':
 				sapi_module = &cli_sapi_module;
@@ -1415,10 +1529,10 @@ out:
 		free(ini_entries);
 	}
 	if (module_started) {
-		php_module_shutdown();
+		php_module_shutdown();	//php模块关闭
 	}
 	if (sapi_started) {
-		sapi_shutdown();
+		sapi_shutdown(); //sapi关闭
 	}
 #ifdef ZTS
 	tsrm_shutdown();
